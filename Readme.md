@@ -1,7 +1,7 @@
 # Личный проект «Кексобукинг» [![Build status][travis-image]][travis-url]
 
 * Студент: [Андрей Краснов](https://up.htmlacademy.ru/javascript/9/user/176615).
-* Наставник: `Неизвестно`.
+* Наставник: [Александр Духовняк](https://up.htmlacademy.ru/javascript/9/user/126025).
 
 ---
 
