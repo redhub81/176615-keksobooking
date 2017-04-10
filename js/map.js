@@ -47,39 +47,58 @@ var ADVERT_OFFER_TYPE_LABELS = {
   bungalo: 'Бунгало'
 };
 
-/** Предоставляемые методы.
+var PIN_WIDTH = 56;
+var PIN_HEIGHT = 75;
+var PIN_IMG_WIDTH = 40;
+var PIN_IMG_HEIGHT = 40;
+
+var ENTER_KEY_CODE = 13;
+var ESCAPE_KEY_CODE = 27;
+
+/** Инициализация.
  ******************************************************************************/
+
+var activePin = null;
+var advertDialogElement = document.querySelector('.dialog');
+var advertDialogCloseElement = advertDialogElement.querySelector('.dialog__close');
+
+var advertDialogTitleImage = document.querySelector('.dialog__title img');
+var lodgeTemplate = document.querySelector('#lodge-template').content;
+
+var pinMapElement = document.querySelector('.tokyo__pin-map');
 
 /**
  * Отображает метки объявлений на карте.
  * @param {Array.<Object>} adverts Модели вида объявлений.
  */
 var showAdvertLabelsOnMap = function (adverts) {
-  var map = document.querySelector('.tokyo__pin-map');
   var labelsFragment = renderMapLabelFragment(adverts);
-  map.appendChild(labelsFragment);
+
+  pinMapElement.innerHTML = '';
+  pinMapElement.appendChild(labelsFragment);
+
+  initPins();
 };
 
 /**
  * Отображает диалоговую панели.
  * @param {Array.<Object>} adverts Модели вида объявлений.
  */
-var showDialogPanel = function (adverts) {
-  var userDialogTitleImage = document.querySelector('.dialog__title img');
-
-  var offerDialog = document.querySelector('.dialog__panel');
-  var offerDialogParent = offerDialog.parentNode;
-
-  var selectedAdvert = adverts[0];
-  var lodgeTemplate = document.querySelector('#lodge-template').content;
-  var lodgeFragment = renderLodgeFragment(lodgeTemplate, selectedAdvert);
-  offerDialogParent.replaceChild(lodgeFragment, offerDialog);
-  userDialogTitleImage.src = selectedAdvert.author.avatar;
+var initAdvertDialogPanel = function (adverts) {
+  if (!adverts || adverts.length <= 0) {
+    return;
+  }
+  var initialAdvert = adverts[0];
+  var pinId = createPinId(initialAdvert.id);
+  var pin = pinMapElement.querySelector('#' + pinId);
+  activatePin(pin);
+  showAdvertDialogContent(initialAdvert);
 };
 
 var advertItems = createAdverts();
 showAdvertLabelsOnMap(advertItems);
-showDialogPanel(advertItems);
+initAdvertDialogPanel(advertItems);
+
 
 /** Создание моделей вида.
  ******************************************************************************/
@@ -105,6 +124,7 @@ function createAdverts() {
 function createAdvert(id, title) {
   var location = createLocation();
   return {
+    id: id,
     author: createAuthor(id),
     offer: craeteOffer(title, location),
     location: location
@@ -113,10 +133,9 @@ function createAdvert(id, title) {
 
 function createAuthor(id) {
   var result;
-  if (id > 0 && id < 10) {
-    var numberAsString = '0' + id;
+  if (id && id >= 0 && id < 100) {
     result = {
-      avatar: format(ADVERT_AUTHOR_AVATAR_URL_FORMAT, [numberAsString])
+      avatar: format(ADVERT_AUTHOR_AVATAR_URL_FORMAT, [createNumberId(id, 2)])
     };
   }
 
@@ -146,8 +165,25 @@ function getOfferTitle(number, substitution) {
 function createLocation() {
   return {
     x: getRandomInt(300, 900),
-    y: getRandomInt(100, 500)
+    y: getRandomInt(100 + PIN_HEIGHT, 500)
   };
+}
+
+/** Доступ к данным.
+ ******************************************************************************/
+
+function getAdvertById(advertId) {
+  var advertItem = advertItems.find(function (element) {
+    return element.id === advertId;
+  });
+
+  return advertItem;
+}
+
+function getAdvert(pinElement) {
+  var pinId = pinElement.id;
+  var advertId = getAdvertId(pinId);
+  return getAdvertById(advertId);
 }
 
 /** Отображение моделей вида.
@@ -174,26 +210,22 @@ function renderMapLabels(adverts) {
 }
 
 function createMapLabelElement(advert) {
-  var WIDTH = 56;
-  var HEIGHT = 75;
-  var IMG_WIDTH = 40;
-  var IMG_HEIGHT = 40;
-
   var element = document.createElement('div');
-
+  element.id = createPinId(advert.id);
   element.classList.add('pin');
-  var xPosition = advert.location.x - Math.round(0.5 * WIDTH);
-  var yPosition = advert.location.y - HEIGHT;
+  var xPosition = advert.location.x - Math.round(0.5 * PIN_WIDTH);
+  var yPosition = advert.location.y - PIN_HEIGHT;
   element.style.left = xPosition + 'px';
   element.style.top = yPosition + 'px';
 
   var childElement = document.createElement('img');
   childElement.src = advert.author.avatar;
   childElement.classList.add('rounded');
-  childElement.width = IMG_WIDTH;
-  childElement.height = IMG_HEIGHT;
+  childElement.width = PIN_IMG_WIDTH;
+  childElement.height = PIN_IMG_HEIGHT;
 
   element.appendChild(childElement);
+  element.tabIndex = '0';
 
   return element;
 }
@@ -273,3 +305,150 @@ function format(text, formats) {
 
   return text;
 }
+
+function createNumberId(number, length) {
+  var numberAsString = '' + number;
+  var leadZeroCount = length - numberAsString.length;
+  var prefix = leadZeroCount > 0
+    ? Array(leadZeroCount + 1).join('0')
+    : '';
+  return prefix + numberAsString;
+}
+
+/** Выполнение задания module4-task1
+ ******************************************************************************/
+
+/** Управление метками на карте.
+ ******************************************************************************/
+
+function initPins() {
+  var pinKeydownHandler = null;
+  var pins = pinMapElement.querySelectorAll('.pin');
+
+  for (var index = 0; index < pins.length; index++) {
+    var pin = pins[index];
+
+    pin.addEventListener('click', function (evt) {
+      var pinTarget = evt.currentTarget;
+      activatePin(pinTarget);
+
+      var advert = getAdvert(pinTarget);
+      showAdvertDialogContent(advert);
+    });
+
+    pin.addEventListener('focus', function (focusEvt) {
+      pinKeydownHandler = function (keydownEvt) {
+        if (isActivatedByKeyCode(keydownEvt, ENTER_KEY_CODE)) {
+          var pinTarget = keydownEvt.currentTarget;
+          activatePin(pinTarget);
+
+          var advert = getAdvert(pinTarget);
+          showAdvertDialogContent(advert);
+        }
+      };
+      focusEvt.currentTarget.addEventListener('keydown', pinKeydownHandler);
+    });
+    pin.addEventListener('blur', function (blurEvt) {
+      blurEvt.currentTarget.removeEventListener('keydown', pinKeydownHandler);
+      pinKeydownHandler = null;
+    });
+  }
+
+  return pins;
+}
+
+function activatePin(pin) {
+  deactivatePin();
+  activePin = pin;
+  pin.classList.add('pin--active');
+  pin.focus();
+}
+
+function deactivatePin() {
+  if (activePin === null) {
+    return;
+  }
+  activePin.classList.remove('pin--active');
+}
+
+/** Управление карточкой объявления.
+ ******************************************************************************/
+
+function showAdvertDialogContent(advert) {
+  var advertDialogCloseElementClickHandler = null;
+  var advertDialogCloseElementKeydownHandler = null;
+  var advertDialogElementKeydownHandler = null;
+
+  var unsubscribeDialogCloseEvents = function () {
+    if (advertDialogCloseElementClickHandler) {
+      advertDialogCloseElement.removeEventListener('click', advertDialogCloseElementClickHandler);
+      advertDialogCloseElementClickHandler = null;
+    }
+    if (advertDialogCloseElementKeydownHandler) {
+      advertDialogCloseElement.removeEventListener('keydown', advertDialogCloseElementKeydownHandler);
+      advertDialogCloseElementKeydownHandler = null;
+    }
+    if (advertDialogElementKeydownHandler) {
+      document.removeEventListener('keydown', advertDialogElementKeydownHandler);
+      advertDialogElementKeydownHandler = null;
+    }
+  };
+
+  advertDialogCloseElementClickHandler = function () {
+    unsubscribeDialogCloseEvents();
+    closeAdvertDialog();
+  };
+  advertDialogCloseElement.addEventListener('click', advertDialogCloseElementClickHandler);
+
+  advertDialogCloseElementKeydownHandler = function (keydownEvt) {
+    if (isActivatedByKeyCode(keydownEvt, ESCAPE_KEY_CODE)) {
+      unsubscribeDialogCloseEvents();
+      closeAdvertDialog();
+    }
+  };
+  advertDialogCloseElement.addEventListener('keydown', advertDialogCloseElementKeydownHandler);
+
+  advertDialogElementKeydownHandler = function (keydownEvt) {
+    if (isActivatedByKeyCode(keydownEvt, ESCAPE_KEY_CODE)) {
+      unsubscribeDialogCloseEvents();
+      closeAdvertDialog();
+    }
+  };
+  document.addEventListener('keydown', advertDialogElementKeydownHandler);
+
+  renderAdvertDialog(advert);
+  advertDialogElement.style.display = 'block';
+}
+
+function closeAdvertDialog() {
+  var dialog = advertDialogElement;
+
+  dialog.style.display = 'none';
+  deactivatePin(activePin);
+}
+
+function renderAdvertDialog(advert) {
+  var dialog = advertDialogElement;
+  var dialogPanel = dialog.querySelector('.dialog__panel');
+
+  var lodgeFragment = renderLodgeFragment(lodgeTemplate, advert);
+  dialog.replaceChild(lodgeFragment, dialogPanel);
+
+  advertDialogTitleImage.src = advert.author.avatar;
+}
+
+/** Вспомогательные методы.
+ ******************************************************************************/
+
+function createPinId(advertId) {
+  return 'pin-' + advertId;
+}
+
+function getAdvertId(pinId) {
+  var lastItem = pinId.split('-').pop();
+  return +lastItem;
+}
+
+var isActivatedByKeyCode = function (evt, keyCode) {
+  return evt.keyCode && evt.keyCode === keyCode;
+};
