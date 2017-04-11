@@ -47,6 +47,19 @@ var ADVERT_OFFER_TYPE_LABELS = {
   bungalo: 'Бунгало'
 };
 
+var PRICE_MAPPING = [0, 1000, 10000];
+
+var ROOMS_AND_GUESTS_MAPPING = [
+  ['1', '0'],
+  ['2', '3'],
+  ['100', '3']
+];
+var GUESTS_AND_ROOMS_MAPPING = [
+  ROOMS_AND_GUESTS_MAPPING[0].slice(0).reverse(),
+  ROOMS_AND_GUESTS_MAPPING[1].slice(0).reverse(),
+  ROOMS_AND_GUESTS_MAPPING[2].slice(0).reverse(),
+];
+
 var PIN_WIDTH = 56;
 var PIN_HEIGHT = 75;
 var PIN_IMG_WIDTH = 40;
@@ -55,10 +68,79 @@ var PIN_IMG_HEIGHT = 40;
 var ENTER_KEY_CODE = 13;
 var ESCAPE_KEY_CODE = 27;
 
-/** Инициализация.
+/** Вспомогательные методы.
  ******************************************************************************/
 
-var activePin = null;
+var getRandomItem = function (array) {
+  return array[getRandomInt(0, array.length - 1)];
+}
+
+var getRandomInt = function (min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+var getRandomItemsWithoutRepetition = function (sourceItems, count) {
+  var result;
+  if (sourceItems.length >= count) {
+    var substitution = getRandomSubstitutionWithoutRepetition(sourceItems.length, count);
+    var orderedSubstitution = substitution.sort();
+
+    var items = [];
+    for (var index = 0; index < orderedSubstitution.length; index++) {
+      items.push(sourceItems[orderedSubstitution[index]]);
+    }
+    result = items;
+  }
+  return result;
+}
+
+var getRandomSubstitutionWithoutRepetition = function (fromCount, toCount) {
+  var substitution = [];
+  var valueDictionary = {};
+  for (var index = 0; index < toCount; index++) {
+    do {
+      var value = getRandomInt(0, fromCount - 1);
+      var valueAsString = '' + value;
+    } while (valueAsString in valueDictionary);
+    valueDictionary[valueAsString] = value;
+    substitution[index] = value;
+  }
+  return substitution;
+}
+
+var format = function (text, formats) {
+  for (var index = 0; index < formats.length; index++) {
+    text = text.replace('{' + index + '}', formats[index]);
+  }
+  return text;
+}
+
+var createNumberId = function (number, length) {
+  var numberAsString = '' + number;
+  var leadZeroCount = length - numberAsString.length;
+  var prefix = leadZeroCount > 0
+    ? Array(leadZeroCount + 1).join('0')
+    : '';
+  return prefix + numberAsString;
+}
+
+var createPinId = function (advertId) {
+  return 'pin-' + advertId;
+}
+
+var getAdvertId = function (pinId) {
+  var lastItem = pinId.split('-').pop();
+  return +lastItem;
+}
+
+var isActivatedByKeyCode = function (evt, keyCode) {
+  return evt.keyCode && evt.keyCode === keyCode;
+};
+
+/** Инициализация элементов.
+ ******************************************************************************/
+
+var activePinElement = null;
 var advertDialogElement = document.querySelector('.dialog');
 var advertDialogCloseElement = advertDialogElement.querySelector('.dialog__close');
 
@@ -66,6 +148,14 @@ var advertDialogTitleImage = document.querySelector('.dialog__title img');
 var lodgeTemplate = document.querySelector('#lodge-template').content;
 
 var pinMapElement = document.querySelector('.tokyo__pin-map');
+
+var noticeFormElement = document.querySelector('.notice__form');
+var timeSelectElement = document.getElementById('time');
+var timeoutSelectElement = document.getElementById('timeout');
+var lodgingTypeSelectElement = document.getElementById('type');
+var priceInputElement = document.getElementById('price');
+var roomsSelectElement = document.getElementById('room_number');
+var guestsSelectElement = document.getElementById('capacity');
 
 /**
  * Отображает метки объявлений на карте.
@@ -95,10 +185,122 @@ var initAdvertDialogPanel = function (adverts) {
   showAdvertDialogContent(initialAdvert);
 };
 
+/** Свзязывание полей формы.
+ ******************************************************************************/
+
+var bindPriceToRoomNumber = function (priceInput, roomNumberSelect) {
+  roomNumberSelect.addEventListener('change', function (changeEvt) {
+    var newValue = +changeEvt.target.value;
+    var minPrice = PRICE_MAPPING[newValue];
+    priceInput.min = minPrice;
+  });
+};
+
+var bindSelectsByOptionValue = function (select1, select2) {
+  var synchronizeSelectedOptions = function (value, targetSelect) {
+    var targetOption = value && Array.prototype.find.call(targetSelect.options, function (option) {
+      return option.value === value;
+    });
+    if (targetOption) {
+      targetOption.selected = true;
+    }
+  };
+  select1.addEventListener('change', function (changeEvt) {
+    var newValue = changeEvt.target.value;
+    synchronizeSelectedOptions(newValue, select2);
+  });
+  select2.addEventListener('change', function (changeEvt) {
+    var newValue = changeEvt.target.value;
+    synchronizeSelectedOptions(newValue, select1);
+  });
+
+  var binding = {
+    update: function () {
+      var selectedValue = select1.options[select1.selectedIndex].value;
+      if (selectedValue) {
+        synchronizeSelectedOptions(selectedValue, select2);
+      }
+    }
+  };
+  binding.update();
+};
+
+var bindRoomsWithGuests = function (roomsSelect, guestsSelect) {
+  var synchronizeSelectedOptions = function (value, mapping, targetSelect) {
+    var mapingTuples = value && Array.prototype.filter.call(mapping, function (item) {
+      return item[0] === value;
+    });
+    var targetValues = mapingTuples && mapingTuples.map(function (tuple) {
+      return tuple[1];
+    });
+    var targetOptions = targetValues && Array.prototype.filter.call(targetSelect.options, function (option) {
+      return ~targetValues.indexOf(option.value);
+    });
+    if (targetOptions && targetOptions.length > 0 && !targetOptions.find(function (option) {
+      return option.selected;
+    })) {
+      targetOptions[0].selected = true;
+    }
+  };
+
+  roomsSelect.addEventListener('change', function (changeEvt) {
+    synchronizeSelectedOptions(changeEvt.target.value, ROOMS_AND_GUESTS_MAPPING, guestsSelect);
+  });
+  guestsSelect.addEventListener('change', function (changeEvt) {
+    synchronizeSelectedOptions(changeEvt.target.value, GUESTS_AND_ROOMS_MAPPING, roomsSelect);
+  });
+
+  var binding = {
+    update: function () {
+      var selectedRoomValue = roomsSelect.options[roomsSelect.selectedIndex].value;
+      if (selectedRoomValue) {
+        synchronizeSelectedOptions(selectedRoomValue, ROOMS_AND_GUESTS_MAPPING, guestsSelect);
+      }
+    }
+  };
+  binding.update();
+};
+
+/** Валидация.
+ ******************************************************************************/
+
+var initNoticeFormValidation = function (noticeForm, suspectFormElements, formSubmitedHandler) {
+  var setErrorMerker = function (formElement) {
+    formElement.style.borderColor = 'red';
+  };
+  var removeErrorMarker = function (formElement) {
+    formElement.style.borderColor = null;
+  };
+
+  noticeForm.addEventListener('invalid', function (invalidEvt) {
+    var suspectFormElement = invalidEvt.target;
+    var noticeFormInputHandler = function (inputEvt) {
+      removeErrorMarker(suspectFormElement);
+      noticeForm.removeEventListener('input', noticeFormInputHandler, true);
+      noticeFormInputHandler = null;
+    };
+    setErrorMerker(suspectFormElement);
+    noticeForm.addEventListener('input', noticeFormInputHandler, true);
+  }, true);
+
+  noticeForm.addEventListener('submit', function (submitEvt) {
+    submitEvt.preventDefault();
+    noticeForm.submit();
+    noticeForm.reset();
+  });
+};
+
+/** Инициализация.
+ ******************************************************************************/
+
 var advertItems = createAdverts();
 showAdvertLabelsOnMap(advertItems);
 initAdvertDialogPanel(advertItems);
+bindPriceToRoomNumber(priceInputElement, lodgingTypeSelectElement);
+bindSelectsByOptionValue(timeSelectElement, timeoutSelectElement);
+bindRoomsWithGuests(roomsSelectElement, guestsSelectElement);
 
+initNoticeFormValidation(noticeFormElement);
 
 /** Создание моделей вида.
  ******************************************************************************/
@@ -138,7 +340,6 @@ function createAuthor(id) {
       avatar: format(ADVERT_AUTHOR_AVATAR_URL_FORMAT, [createNumberId(id, 2)])
     };
   }
-
   return result;
 }
 
@@ -256,68 +457,6 @@ function renderLodgeFragment(template, advert) {
   return element;
 }
 
-/** Вспомогательные методы.
- ******************************************************************************/
-
-function getRandomItem(array) {
-  return array[getRandomInt(0, array.length - 1)];
-}
-
-function getRandomInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function getRandomItemsWithoutRepetition(sourceItems, count) {
-  var result;
-  if (sourceItems.length >= count) {
-    var substitution = getRandomSubstitutionWithoutRepetition(sourceItems.length, count);
-    var orderedSubstitution = substitution.sort();
-
-    var items = [];
-    for (var index = 0; index < orderedSubstitution.length; index++) {
-      items.push(sourceItems[orderedSubstitution[index]]);
-    }
-    result = items;
-  }
-
-  return result;
-}
-
-function getRandomSubstitutionWithoutRepetition(fromCount, toCount) {
-  var substitution = [];
-  var valueDictionary = {};
-  for (var index = 0; index < toCount; index++) {
-    do {
-      var value = getRandomInt(0, fromCount - 1);
-      var valueAsString = '' + value;
-    } while (valueAsString in valueDictionary);
-    valueDictionary[valueAsString] = value;
-    substitution[index] = value;
-  }
-
-  return substitution;
-}
-
-function format(text, formats) {
-  for (var index = 0; index < formats.length; index++) {
-    text = text.replace('{' + index + '}', formats[index]);
-  }
-
-  return text;
-}
-
-function createNumberId(number, length) {
-  var numberAsString = '' + number;
-  var leadZeroCount = length - numberAsString.length;
-  var prefix = leadZeroCount > 0
-    ? Array(leadZeroCount + 1).join('0')
-    : '';
-  return prefix + numberAsString;
-}
-
-/** Выполнение задания module4-task1
- ******************************************************************************/
-
 /** Управление метками на карте.
  ******************************************************************************/
 
@@ -359,16 +498,16 @@ function initPins() {
 
 function activatePin(pin) {
   deactivatePin();
-  activePin = pin;
+  activePinElement = pin;
   pin.classList.add('pin--active');
   pin.focus();
 }
 
 function deactivatePin() {
-  if (activePin === null) {
+  if (activePinElement === null) {
     return;
   }
-  activePin.classList.remove('pin--active');
+  activePinElement.classList.remove('pin--active');
 }
 
 /** Управление карточкой объявления.
@@ -424,7 +563,7 @@ function closeAdvertDialog() {
   var dialog = advertDialogElement;
 
   dialog.style.display = 'none';
-  deactivatePin(activePin);
+  deactivatePin(activePinElement);
 }
 
 function renderAdvertDialog(advert) {
@@ -436,19 +575,3 @@ function renderAdvertDialog(advert) {
 
   advertDialogTitleImage.src = advert.author.avatar;
 }
-
-/** Вспомогательные методы.
- ******************************************************************************/
-
-function createPinId(advertId) {
-  return 'pin-' + advertId;
-}
-
-function getAdvertId(pinId) {
-  var lastItem = pinId.split('-').pop();
-  return +lastItem;
-}
-
-var isActivatedByKeyCode = function (evt, keyCode) {
-  return evt.keyCode && evt.keyCode === keyCode;
-};
