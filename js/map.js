@@ -73,11 +73,11 @@ var ESCAPE_KEY_CODE = 27;
 
 var getRandomItem = function (array) {
   return array[getRandomInt(0, array.length - 1)];
-}
+};
 
 var getRandomInt = function (min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
-}
+};
 
 var getRandomItemsWithoutRepetition = function (sourceItems, count) {
   var result;
@@ -92,7 +92,7 @@ var getRandomItemsWithoutRepetition = function (sourceItems, count) {
     result = items;
   }
   return result;
-}
+};
 
 var getRandomSubstitutionWithoutRepetition = function (fromCount, toCount) {
   var substitution = [];
@@ -106,14 +106,14 @@ var getRandomSubstitutionWithoutRepetition = function (fromCount, toCount) {
     substitution[index] = value;
   }
   return substitution;
-}
+};
 
 var format = function (text, formats) {
   for (var index = 0; index < formats.length; index++) {
     text = text.replace('{' + index + '}', formats[index]);
   }
   return text;
-}
+};
 
 var createNumberId = function (number, length) {
   var numberAsString = '' + number;
@@ -122,16 +122,16 @@ var createNumberId = function (number, length) {
     ? Array(leadZeroCount + 1).join('0')
     : '';
   return prefix + numberAsString;
-}
+};
 
 var createPinId = function (advertId) {
   return 'pin-' + advertId;
-}
+};
 
 var getAdvertId = function (pinId) {
   var lastItem = pinId.split('-').pop();
   return +lastItem;
-}
+};
 
 var isActivatedByKeyCode = function (evt, keyCode) {
   return evt.keyCode && evt.keyCode === keyCode;
