@@ -188,11 +188,18 @@ var initAdvertDialogPanel = function (adverts) {
 /** Свзязывание полей формы.
  ******************************************************************************/
 
-var bindPriceToRoomNumber = function (priceInput, roomNumberSelect) {
-  roomNumberSelect.addEventListener('change', function (changeEvt) {
+var bindPriceToRoomNumber = function (priceInput, lodgingTypeSelect) {
+  lodgingTypeSelect.addEventListener('change', function (changeEvt) {
     var newValue = +changeEvt.target.value;
     var minPrice = PRICE_MAPPING[newValue];
+
     priceInput.min = minPrice;
+    priceInput.placeholder = minPrice;
+
+    var currentPrice = parseInt(priceInput.value, 10);
+    if (!isNaN(currentPrice) && currentPrice < minPrice) {
+      priceInput.value = minPrice;
+    }
   });
 };
 
