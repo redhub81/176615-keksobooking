@@ -47,19 +47,6 @@ var ADVERT_OFFER_TYPE_LABELS = {
   bungalo: 'Бунгало'
 };
 
-var PRICE_MAPPING = [0, 1000, 10000];
-
-var ROOMS_AND_GUESTS_MAPPING = [
-  ['1', '0'],
-  ['2', '3'],
-  ['100', '3']
-];
-var GUESTS_AND_ROOMS_MAPPING = [
-  ROOMS_AND_GUESTS_MAPPING[0].slice(0).reverse(),
-  ROOMS_AND_GUESTS_MAPPING[1].slice(0).reverse(),
-  ROOMS_AND_GUESTS_MAPPING[2].slice(0).reverse(),
-];
-
 var PIN_WIDTH = 56;
 var PIN_HEIGHT = 75;
 var PIN_IMG_WIDTH = 40;
@@ -67,6 +54,8 @@ var PIN_IMG_HEIGHT = 40;
 
 var ENTER_KEY_CODE = 13;
 var ESCAPE_KEY_CODE = 27;
+
+var PRICE_MAPPING = [0, 1000, 10000];
 
 /** Вспомогательные методы.
  ******************************************************************************/
@@ -116,7 +105,7 @@ var format = function (text, formats) {
 };
 
 var createNumberId = function (number, length) {
-  var numberAsString = '' + number;
+  var numberAsString = number.toString();
   var leadZeroCount = length - numberAsString.length;
   var prefix = leadZeroCount > 0
     ? Array(leadZeroCount + 1).join('0')
@@ -188,84 +177,61 @@ var initAdvertDialogPanel = function (adverts) {
 /** Свзязывание полей формы.
  ******************************************************************************/
 
-var bindPriceToRoomNumber = function (priceInput, lodgingTypeSelect) {
-  lodgingTypeSelect.addEventListener('change', function (changeEvt) {
-    var newValue = +changeEvt.target.value;
-    var minPrice = PRICE_MAPPING[newValue];
+var bindNoticeFormElements = function () {
+  var setSelectedValue = function (targetSelect, value) {
+    var targetValue = Array.prototype.find.call(targetSelect.options, function (option) {
+      return option.value === value;
+    });
+    if (targetValue && !targetValue.selected) {
+      targetSelect.value = targetValue.value;
+    }
+  };
 
+  var setPriceInputValue = function (priceInput, value) {
+    var minPrice = PRICE_MAPPING[value];
     priceInput.min = minPrice;
     priceInput.placeholder = minPrice;
 
     var currentPrice = parseInt(priceInput.value, 10);
     if (!isNaN(currentPrice) && currentPrice < minPrice) {
-      priceInput.value = minPrice;
-    }
-  });
-};
-
-var bindSelectsByOptionValue = function (select1, select2) {
-  var synchronizeSelectedOptions = function (value, targetSelect) {
-    var targetOption = value && Array.prototype.find.call(targetSelect.options, function (option) {
-      return option.value === value;
-    });
-    if (targetOption) {
-      targetOption.selected = true;
+      priceInput.value = '';
     }
   };
-  select1.addEventListener('change', function (changeEvt) {
+
+  timeSelectElement.addEventListener('change', function (changeEvt) {
     var newValue = changeEvt.target.value;
-    synchronizeSelectedOptions(newValue, select2);
+    setSelectedValue(timeoutSelectElement, newValue);
   });
-  select2.addEventListener('change', function (changeEvt) {
+  timeoutSelectElement.addEventListener('change', function (changeEvt) {
     var newValue = changeEvt.target.value;
-    synchronizeSelectedOptions(newValue, select1);
+    setSelectedValue(timeSelectElement, newValue);
   });
 
-  var binding = {
-    update: function () {
-      var selectedValue = select1.options[select1.selectedIndex].value;
-      if (selectedValue) {
-        synchronizeSelectedOptions(selectedValue, select2);
-      }
-    }
-  };
-  binding.update();
-};
-
-var bindRoomsWithGuests = function (roomsSelect, guestsSelect) {
-  var synchronizeSelectedOptions = function (value, mapping, targetSelect) {
-    var mapingTuples = value && Array.prototype.filter.call(mapping, function (item) {
-      return item[0] === value;
-    });
-    var targetValues = mapingTuples && mapingTuples.map(function (tuple) {
-      return tuple[1];
-    });
-    var targetOptions = targetValues && Array.prototype.filter.call(targetSelect.options, function (option) {
-      return ~targetValues.indexOf(option.value);
-    });
-    if (targetOptions && targetOptions.length > 0 && !targetOptions.find(function (option) {
-      return option.selected;
-    })) {
-      targetOptions[0].selected = true;
-    }
-  };
-
-  roomsSelect.addEventListener('change', function (changeEvt) {
-    synchronizeSelectedOptions(changeEvt.target.value, ROOMS_AND_GUESTS_MAPPING, guestsSelect);
-  });
-  guestsSelect.addEventListener('change', function (changeEvt) {
-    synchronizeSelectedOptions(changeEvt.target.value, GUESTS_AND_ROOMS_MAPPING, roomsSelect);
+  lodgingTypeSelectElement.addEventListener('change', function (changeEvt) {
+    var newValue = +changeEvt.target.value;
+    setPriceInputValue(priceInputElement, newValue);
   });
 
-  var binding = {
-    update: function () {
-      var selectedRoomValue = roomsSelect.options[roomsSelect.selectedIndex].value;
-      if (selectedRoomValue) {
-        synchronizeSelectedOptions(selectedRoomValue, ROOMS_AND_GUESTS_MAPPING, guestsSelect);
-      }
+  roomsSelectElement.addEventListener('change', function (changeEvt) {
+    var newValue = changeEvt.target.value;
+    setSelectedValue(guestsSelectElement, newValue);
+  });
+  guestsSelectElement.addEventListener('change', function (changeEvt) {
+    var newValue = changeEvt.target.value;
+    setSelectedValue(roomsSelectElement, newValue);
+  });
+
+  return {
+    updateTimeOut: function () {
+      setSelectedValue(timeoutSelectElement, timeSelectElement.value);
+    },
+    updatePrice: function () {
+      setPriceInputValue(priceInputElement, lodgingTypeSelectElement.value);
+    },
+    updateGuestsSelect: function () {
+      setSelectedValue(guestsSelectElement, roomsSelectElement.value);
     }
   };
-  binding.update();
 };
 
 /** Валидация.
@@ -273,18 +239,20 @@ var bindRoomsWithGuests = function (roomsSelect, guestsSelect) {
 
 var initNoticeFormValidation = function (noticeForm, suspectFormElements, formSubmitedHandler) {
   var setErrorMerker = function (formElement) {
-    formElement.style.borderColor = 'red';
+    formElement.classList.add('invalid');
   };
   var removeErrorMarker = function (formElement) {
-    formElement.style.borderColor = null;
+    formElement.classList.remove('invalid');
   };
 
   noticeForm.addEventListener('invalid', function (invalidEvt) {
     var suspectFormElement = invalidEvt.target;
     var noticeFormInputHandler = function (inputEvt) {
-      removeErrorMarker(suspectFormElement);
-      noticeForm.removeEventListener('input', noticeFormInputHandler, true);
-      noticeFormInputHandler = null;
+      if (inputEvt.target === suspectFormElement) {
+        removeErrorMarker(suspectFormElement);
+        noticeForm.removeEventListener('input', noticeFormInputHandler, true);
+        noticeFormInputHandler = null;
+      }
     };
     setErrorMerker(suspectFormElement);
     noticeForm.addEventListener('input', noticeFormInputHandler, true);
@@ -303,9 +271,11 @@ var initNoticeFormValidation = function (noticeForm, suspectFormElements, formSu
 var advertItems = createAdverts();
 showAdvertLabelsOnMap(advertItems);
 initAdvertDialogPanel(advertItems);
-bindPriceToRoomNumber(priceInputElement, lodgingTypeSelectElement);
-bindSelectsByOptionValue(timeSelectElement, timeoutSelectElement);
-bindRoomsWithGuests(roomsSelectElement, guestsSelectElement);
+
+var noticeFormElementsBinding = bindNoticeFormElements();
+noticeFormElementsBinding.updateTimeOut();
+noticeFormElementsBinding.updatePrice();
+noticeFormElementsBinding.updateGuestsSelect();
 
 initNoticeFormValidation(noticeFormElement);
 
@@ -570,7 +540,7 @@ function closeAdvertDialog() {
   var dialog = advertDialogElement;
 
   dialog.style.display = 'none';
-  deactivatePin(activePinElement);
+  deactivatePin();
 }
 
 function renderAdvertDialog(advert) {
