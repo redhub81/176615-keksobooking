@@ -55,10 +55,81 @@ var PIN_IMG_HEIGHT = 40;
 var ENTER_KEY_CODE = 13;
 var ESCAPE_KEY_CODE = 27;
 
-/** Инициализация.
+var PRICE_MAPPING = [0, 1000, 10000];
+
+/** Вспомогательные методы.
  ******************************************************************************/
 
-var activePin = null;
+var getRandomItem = function (array) {
+  return array[getRandomInt(0, array.length - 1)];
+};
+
+var getRandomInt = function (min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+};
+
+var getRandomItemsWithoutRepetition = function (sourceItems, count) {
+  var result;
+  if (sourceItems.length >= count) {
+    var substitution = getRandomSubstitutionWithoutRepetition(sourceItems.length, count);
+    var orderedSubstitution = substitution.sort();
+
+    var items = [];
+    for (var index = 0; index < orderedSubstitution.length; index++) {
+      items.push(sourceItems[orderedSubstitution[index]]);
+    }
+    result = items;
+  }
+  return result;
+};
+
+var getRandomSubstitutionWithoutRepetition = function (fromCount, toCount) {
+  var substitution = [];
+  var valueDictionary = {};
+  for (var index = 0; index < toCount; index++) {
+    do {
+      var value = getRandomInt(0, fromCount - 1);
+      var valueAsString = '' + value;
+    } while (valueAsString in valueDictionary);
+    valueDictionary[valueAsString] = value;
+    substitution[index] = value;
+  }
+  return substitution;
+};
+
+var format = function (text, formats) {
+  for (var index = 0; index < formats.length; index++) {
+    text = text.replace('{' + index + '}', formats[index]);
+  }
+  return text;
+};
+
+var createNumberId = function (number, length) {
+  var numberAsString = number.toString();
+  var leadZeroCount = length - numberAsString.length;
+  var prefix = leadZeroCount > 0
+    ? Array(leadZeroCount + 1).join('0')
+    : '';
+  return prefix + numberAsString;
+};
+
+var createPinId = function (advertId) {
+  return 'pin-' + advertId;
+};
+
+var getAdvertId = function (pinId) {
+  var lastItem = pinId.split('-').pop();
+  return +lastItem;
+};
+
+var isActivatedByKeyCode = function (evt, keyCode) {
+  return evt.keyCode && evt.keyCode === keyCode;
+};
+
+/** Инициализация элементов.
+ ******************************************************************************/
+
+var activePinElement = null;
 var advertDialogElement = document.querySelector('.dialog');
 var advertDialogCloseElement = advertDialogElement.querySelector('.dialog__close');
 
@@ -66,6 +137,14 @@ var advertDialogTitleImage = document.querySelector('.dialog__title img');
 var lodgeTemplate = document.querySelector('#lodge-template').content;
 
 var pinMapElement = document.querySelector('.tokyo__pin-map');
+
+var noticeFormElement = document.querySelector('.notice__form');
+var timeSelectElement = document.getElementById('time');
+var timeoutSelectElement = document.getElementById('timeout');
+var lodgingTypeSelectElement = document.getElementById('type');
+var priceInputElement = document.getElementById('price');
+var roomsSelectElement = document.getElementById('room_number');
+var guestsSelectElement = document.getElementById('capacity');
 
 /**
  * Отображает метки объявлений на карте.
@@ -95,10 +174,110 @@ var initAdvertDialogPanel = function (adverts) {
   showAdvertDialogContent(initialAdvert);
 };
 
+/** Свзязывание полей формы.
+ ******************************************************************************/
+
+var bindNoticeFormElements = function () {
+  var setSelectedValue = function (targetSelect, value) {
+    var targetValue = Array.prototype.find.call(targetSelect.options, function (option) {
+      return option.value === value;
+    });
+    if (targetValue && !targetValue.selected) {
+      targetSelect.value = targetValue.value;
+    }
+  };
+
+  var setPriceInputValue = function (priceInput, value) {
+    var minPrice = PRICE_MAPPING[value];
+    priceInput.min = minPrice;
+    priceInput.placeholder = minPrice;
+
+    var currentPrice = parseInt(priceInput.value, 10);
+    if (!isNaN(currentPrice) && currentPrice < minPrice) {
+      priceInput.value = '';
+    }
+  };
+
+  timeSelectElement.addEventListener('change', function (changeEvt) {
+    var newValue = changeEvt.target.value;
+    setSelectedValue(timeoutSelectElement, newValue);
+  });
+  timeoutSelectElement.addEventListener('change', function (changeEvt) {
+    var newValue = changeEvt.target.value;
+    setSelectedValue(timeSelectElement, newValue);
+  });
+
+  lodgingTypeSelectElement.addEventListener('change', function (changeEvt) {
+    var newValue = +changeEvt.target.value;
+    setPriceInputValue(priceInputElement, newValue);
+  });
+
+  roomsSelectElement.addEventListener('change', function (changeEvt) {
+    var newValue = changeEvt.target.value;
+    setSelectedValue(guestsSelectElement, newValue);
+  });
+  guestsSelectElement.addEventListener('change', function (changeEvt) {
+    var newValue = changeEvt.target.value;
+    setSelectedValue(roomsSelectElement, newValue);
+  });
+
+  return {
+    updateTimeOut: function () {
+      setSelectedValue(timeoutSelectElement, timeSelectElement.value);
+    },
+    updatePrice: function () {
+      setPriceInputValue(priceInputElement, lodgingTypeSelectElement.value);
+    },
+    updateGuestsSelect: function () {
+      setSelectedValue(guestsSelectElement, roomsSelectElement.value);
+    }
+  };
+};
+
+/** Валидация.
+ ******************************************************************************/
+
+var initNoticeFormValidation = function (noticeForm, suspectFormElements, formSubmitedHandler) {
+  var setErrorMerker = function (formElement) {
+    formElement.classList.add('invalid');
+  };
+  var removeErrorMarker = function (formElement) {
+    formElement.classList.remove('invalid');
+  };
+
+  noticeForm.addEventListener('invalid', function (invalidEvt) {
+    var suspectFormElement = invalidEvt.target;
+    var noticeFormInputHandler = function (inputEvt) {
+      if (inputEvt.target === suspectFormElement) {
+        removeErrorMarker(suspectFormElement);
+        noticeForm.removeEventListener('input', noticeFormInputHandler, true);
+        noticeFormInputHandler = null;
+      }
+    };
+    setErrorMerker(suspectFormElement);
+    noticeForm.addEventListener('input', noticeFormInputHandler, true);
+  }, true);
+
+  noticeForm.addEventListener('submit', function (submitEvt) {
+    submitEvt.preventDefault();
+    noticeForm.submit();
+    noticeForm.reset();
+  });
+};
+
+/** Инициализация.
+ ******************************************************************************/
+
 var advertItems = createAdverts();
 showAdvertLabelsOnMap(advertItems);
 initAdvertDialogPanel(advertItems);
 
+var noticeFormElementsBinding = bindNoticeFormElements();
+noticeFormElementsBinding.updateTimeOut();
+noticeFormElementsBinding.updatePrice();
+noticeFormElementsBinding.updateGuestsSelect();
+
+initNoticeFormValidation(noticeFormElement);
 
 /** Создание моделей вида.
  ******************************************************************************/
@@ -138,7 +317,6 @@ function createAuthor(id) {
       avatar: format(ADVERT_AUTHOR_AVATAR_URL_FORMAT, [createNumberId(id, 2)])
     };
   }
-
   return result;
 }
 
@@ -256,68 +434,6 @@ function renderLodgeFragment(template, advert) {
   return element;
 }
 
-/** Вспомогательные методы.
- ******************************************************************************/
-
-function getRandomItem(array) {
-  return array[getRandomInt(0, array.length - 1)];
-}
-
-function getRandomInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function getRandomItemsWithoutRepetition(sourceItems, count) {
-  var result;
-  if (sourceItems.length >= count) {
-    var substitution = getRandomSubstitutionWithoutRepetition(sourceItems.length, count);
-    var orderedSubstitution = substitution.sort();
-
-    var items = [];
-    for (var index = 0; index < orderedSubstitution.length; index++) {
-      items.push(sourceItems[orderedSubstitution[index]]);
-    }
-    result = items;
-  }
-
-  return result;
-}
-
-function getRandomSubstitutionWithoutRepetition(fromCount, toCount) {
-  var substitution = [];
-  var valueDictionary = {};
-  for (var index = 0; index < toCount; index++) {
-    do {
-      var value = getRandomInt(0, fromCount - 1);
-      var valueAsString = '' + value;
-    } while (valueAsString in valueDictionary);
-    valueDictionary[valueAsString] = value;
-    substitution[index] = value;
-  }
-
-  return substitution;
-}
-
-function format(text, formats) {
-  for (var index = 0; index < formats.length; index++) {
-    text = text.replace('{' + index + '}', formats[index]);
-  }
-
-  return text;
-}
-
-function createNumberId(number, length) {
-  var numberAsString = '' + number;
-  var leadZeroCount = length - numberAsString.length;
-  var prefix = leadZeroCount > 0
-    ? Array(leadZeroCount + 1).join('0')
-    : '';
-  return prefix + numberAsString;
-}
-
-/** Выполнение задания module4-task1
- ******************************************************************************/
-
 /** Управление метками на карте.
  ******************************************************************************/
 
@@ -359,16 +475,16 @@ function initPins() {
 
 function activatePin(pin) {
   deactivatePin();
-  activePin = pin;
+  activePinElement = pin;
   pin.classList.add('pin--active');
   pin.focus();
 }
 
 function deactivatePin() {
-  if (activePin === null) {
+  if (activePinElement === null) {
     return;
   }
-  activePin.classList.remove('pin--active');
+  activePinElement.classList.remove('pin--active');
 }
 
 /** Управление карточкой объявления.
@@ -424,7 +540,7 @@ function closeAdvertDialog() {
   var dialog = advertDialogElement;
 
   dialog.style.display = 'none';
-  deactivatePin(activePin);
+  deactivatePin();
 }
 
 function renderAdvertDialog(advert) {
@@ -436,19 +552,3 @@ function renderAdvertDialog(advert) {
 
   advertDialogTitleImage.src = advert.author.avatar;
 }
-
-/** Вспомогательные методы.
- ******************************************************************************/
-
-function createPinId(advertId) {
-  return 'pin-' + advertId;
-}
-
-function getAdvertId(pinId) {
-  var lastItem = pinId.split('-').pop();
-  return +lastItem;
-}
-
-var isActivatedByKeyCode = function (evt, keyCode) {
-  return evt.keyCode && evt.keyCode === keyCode;
-};

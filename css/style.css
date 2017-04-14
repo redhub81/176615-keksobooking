@@ -393,6 +393,10 @@ select option:hover {
     height: 214px;
 }
 
+.form__element input.invalid {
+    border-color: red;
+}
+
 .form__photo-container {
     display: flex;
     flex-wrap: wrap;
