@@ -52,7 +52,7 @@ window.data = (function (modules) {
     var numberAsString = number.toString();
     var leadZeroCount = length - numberAsString.length;
     var prefix = leadZeroCount > 0
-      ? Array(leadZeroCount + 1).join('0')
+      ? (new Array(leadZeroCount + 1)).join('0')
       : '';
     return prefix + numberAsString;
   };
@@ -67,7 +67,7 @@ window.data = (function (modules) {
   var createLocation = function () {
     return {
       x: getRandomInt(300, 900),
-      y: getRandomInt(100 + settings.PIN.HEIGHT, 500)
+      y: getRandomInt(175, 500)
     };
   };
 
@@ -168,10 +168,9 @@ window.data = (function (modules) {
      * @return {Object} Данные объявления.
      */
     getAdvertById: function (advertId) {
-      var advertItem = advertItems.find(function (element) {
+      return advertItems.find(function (element) {
         return element.id === advertId;
       });
-      return advertItem;
     }
   };
 })();

@@ -20,7 +20,7 @@ window.defaultSettings = (function () {
         FORMATS: {
           ADDRESS: '{0}, {1}',
           PRICE: '{0}&#x20bd;/ночь',
-          CHECK_TIME: 'Заезд после {0}, выезд до {1}',
+          CHECK_TIME: 'Заезд после {0}, выезд до {1}'
         },
         TITLES: [
           'Большая уютная квартира',
@@ -44,7 +44,7 @@ window.defaultSettings = (function () {
           'washer',
           'elevator',
           'conditioner'
-        ],
+        ]
       },
       AUTHOR: {
         AVATAR: {
@@ -61,6 +61,10 @@ window.defaultSettings = (function () {
         WIDTH: 40,
         HEIGHT: 40
       }
+    },
+    MAIN_PIN: {
+      WIDTH: 75,
+      HEIGHT: 94
     }
   };
 })();

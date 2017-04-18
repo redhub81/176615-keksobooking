@@ -4,6 +4,7 @@
 window.form = (function () {
   var PRICE_MAPPING = [0, 1000, 10000];
 
+  var thisModule;
   var parent;
 
   var elements = {};
@@ -20,14 +21,13 @@ window.form = (function () {
     elements.priceInputElement = document.getElementById('price');
     elements.roomsSelectElement = document.getElementById('room_number');
     elements.guestsSelectElement = document.getElementById('capacity');
+    elements.addressElement = document.getElementById('address');
 
     elements.pinMapElement = document.querySelector('.tokyo__pin-map');
 
-    var initResult = Array.prototype.every.call(elements, function (module) {
+    return Array.prototype.every.call(elements, function (module) {
       return typeof elements !== 'undefined';
     });
-
-    return initResult;
   };
 
   /** Свзязывание полей формы.
@@ -121,10 +121,20 @@ window.form = (function () {
     });
   };
 
+  /** Обработка ввода.
+   ******************************************************************************/
+
+  var subscribeAddressChanged = function (addressElement) {
+    addressElement.addEventListener('change', function (changeEvt) {
+      thisModule.onAddressChanged(changeEvt.target.value);
+    });
+  };
+
+
   /** Публикация интерфейса модуля.
    ******************************************************************************/
 
-  return {
+  thisModule = {
     /**
      * Инициализирует модуль.
      * @param {Object} parentModule Родительский модуль.
@@ -142,6 +152,8 @@ window.form = (function () {
         binding.updateGuestsSelect();
       }
 
+      subscribeAddressChanged(elements.addressElement);
+
       return initResult;
     },
     /**
@@ -151,5 +163,18 @@ window.form = (function () {
     getParent: function () {
       return parent;
     },
+    /**
+     * Задает новое значение поля адреса.
+     * @param {string} text Текст поля адреса.
+     */
+    setAddress: function (text) {
+      elements.addressElement.value = text;
+    },
+    /**
+     * Вызывается после изменения адреса.
+     * @param {string} text Новое значение адреса.
+     */
+    onAddressChanged: function (text) {}
   };
+  return thisModule;
 })();
