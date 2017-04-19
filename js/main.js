@@ -38,7 +38,7 @@ window.main = (function () {
    ******************************************************************************/
 
   var getAddressByLocation = function (point) {
-    return modules.textHelper.format(modules.settings.NOTICE_FORM.ADDRESS.FORMAT, [point.x, point.y]);
+    return modules.textHelper.format(modules.settings.noticeForm.address.format, [point.x, point.y]);
   };
 
   var subscribe = function () {
@@ -52,7 +52,7 @@ window.main = (function () {
       addressInfo.newAddress = getAddressByLocation(modules.map.getMainPinPosition());
     };
 
-    modules.form.onSubmited = function () {
+    modules.form.onSubmit = function () {
       modules.map.parseMainPinPosition(null);
       setup();
     };

@@ -2,16 +2,15 @@
 'use strict';
 
 window.map = (function () {
-  var MAIN_PIN_RECTANGLE = {x0: 300, x1: 900, y0: 175, y1: 500};
   var MAIN_PIN_OFFSET;
+  var PIN_PANEL_X_RANGE;
+  var PIN_PANEL_Y_RANGE;
 
   var thisModule;
   var settings;
   var parent;
   var pin;
   var card;
-  var xRegExp;
-  var yRegExp;
 
   var elements = {};
 
@@ -50,9 +49,15 @@ window.map = (function () {
     return range.min <= fixedPosition && fixedPosition <= range.max;
   };
 
-  var isInRectangle = function (point, rectangle) {
-    return isInRange(point.x, {min: rectangle.x0, max: rectangle.x1})
-      && isInRange(point.y, {min: rectangle.y0, max: rectangle.y1});
+  var coerceToRange = function (position, range) {
+    return Math.min(Math.max(position, range.min), range.max);
+  };
+
+  var coerceToRectangle = function (point) {
+    return {
+      x: coerceToRange(point.x, PIN_PANEL_X_RANGE),
+      y: coerceToRange(point.y, PIN_PANEL_Y_RANGE)
+    };
   };
 
   var getElementPoint = function (element) {
@@ -92,8 +97,8 @@ window.map = (function () {
   };
 
   var parsePoint = function (text) {
-    var xMatch = text.match(xRegExp);
-    var yMatch = text.match(yRegExp);
+    var xMatch = text.match(settings.noticeForm.address.parseXPattern);
+    var yMatch = text.match(settings.noticeForm.address.parseYPattern);
     return {
       x: xMatch !== null ? xMatch[1] : null,
       y: yMatch !== null ? yMatch[1] : null
@@ -105,63 +110,43 @@ window.map = (function () {
 
   var doDragByOrigin = function (element, originOffset, rectangle) {
     var result;
-    var rangeX = {min: rectangle.x0, max: rectangle.x1};
-    var rangeY = {min: rectangle.y0, max: rectangle.y1};
+    var xRange = {min: rectangle.x0, max: rectangle.x1};
+    var yRange = {min: rectangle.y0, max: rectangle.y1};
 
     element.addEventListener('mousedown', function (mousedownEvt) {
       mousedownEvt.preventDefault();
-
-      var startPoint = {
-        x: mousedownEvt.clientX,
-        y: mousedownEvt.clientY
-      };
+      var startPoint = {x: mousedownEvt.clientX, y: mousedownEvt.clientY};
 
       var mouseMoveHandle = function (moveEvt) {
         moveEvt.preventDefault();
-        var repeat;
-
-        var shiftX = startPoint.x - moveEvt.clientX;
-        repeat = false;
-        do {
-          var targetX = element.offsetLeft - shiftX;
-          var originX = targetX + originOffset.x;
-          repeat = !repeat && !isInRange(originX, rangeX);
-          if (repeat) {
-            shiftX = 0;
+        var getPosition = function (shift, position, offset, range) {
+          var repeat = false;
+          do {
+            var targetPosition = position - shift;
+            var originPosition = targetPosition + offset;
+            repeat = !repeat && !isInRange(originPosition, range);
+            if (repeat) {
+              shift = 0;
+            }
           }
-        }
-        while (repeat);
-
-        var shiftY = startPoint.y - moveEvt.clientY;
-        repeat = false;
-        do {
-          var targetY = element.offsetTop - shiftY;
-          var originY = targetY + originOffset.y;
-          repeat = !repeat && !isInRange(originY, rangeY);
-          if (repeat) {
-            shiftY = 0;
-          }
-        }
-        while (repeat);
-
-        startPoint = {
-          x: moveEvt.clientX,
-          y: moveEvt.clientY
+          while (repeat);
+          return {shift: shift, target: targetPosition, origin: originPosition};
         };
+        var xPosition = getPosition(startPoint.x - moveEvt.clientX, element.offsetLeft, originOffset.x, xRange);
+        var yPosition = getPosition(startPoint.y - moveEvt.clientY, element.offsetTop, originOffset.y, yRange);
 
-        if (shiftX !== 0 || shiftY !== 0) {
-          moveElement(element, {x: targetX, y: targetY});
+        startPoint = {x: moveEvt.clientX, y: moveEvt.clientY};
+        if (xPosition.shift !== 0 || yPosition.shift !== 0) {
+          moveElement(element, {x: xPosition.target, y: yPosition.target});
         }
-        result.onDrag({x: originX, y: originY});
+        result.onDrag({x: xPosition.origin, y: yPosition.origin});
       };
 
       var mouseUpHandle = function (upEvt) {
         upEvt.preventDefault();
-
         document.removeEventListener('mousemove', mouseMoveHandle);
         document.removeEventListener('mouseup', mouseUpHandle);
       };
-
       document.addEventListener('mousemove', mouseMoveHandle);
       document.addEventListener('mouseup', mouseUpHandle);
     });
@@ -171,7 +156,6 @@ window.map = (function () {
     };
     return result;
   };
-
 
   /** Публикация интерфейса модуля.
    ******************************************************************************/
@@ -195,17 +179,17 @@ window.map = (function () {
         initResult &= card.init(this, allModules, elements);
       }
       if (initResult) {
-        subscribe();
+        MAIN_PIN_OFFSET = {x: Math.round(0.5 * settings.mainPin.width), y: settings.mainPin.height};
+        var boundingBox = settings.map.pinPanel.boundingBox;
+        PIN_PANEL_X_RANGE = {min: boundingBox.x0, max: boundingBox.x1};
+        PIN_PANEL_Y_RANGE = {min: boundingBox.y0, max: boundingBox.y1};
 
-        MAIN_PIN_OFFSET = {x: Math.round(0.5 * settings.MAIN_PIN.WIDTH), y: settings.MAIN_PIN.HEIGHT};
-        var doDragByOriginResult = doDragByOrigin(elements.mainPinElement, MAIN_PIN_OFFSET, MAIN_PIN_RECTANGLE);
+        subscribe();
+        var doDragByOriginResult = doDragByOrigin(elements.mainPinElement, MAIN_PIN_OFFSET, settings.map.pinPanel.boundingBox);
         doDragByOriginResult.onDrag = function (originPoint) {
           thisModule.onMainPinMove(originPoint);
         };
-        xRegExp = new RegExp(settings.NOTICE_FORM.ADDRESS.PARSE_X_PATTERN);
-        yRegExp = new RegExp(settings.NOTICE_FORM.ADDRESS.PARSE_Y_PATTERN);
       }
-
       return initResult;
     },
     /**
@@ -228,18 +212,15 @@ window.map = (function () {
      * @param {string} text Текстовое представление позиции метки.
      */
     parseMainPinPosition: function (text) {
-      var x;
-      var y;
-      var originPoint;
-      var targetPoint;
       if (text === null) {
         moveElement(elements.mainPinElement, {x: null, y: null});
         return;
       }
       var rawPoint = parsePoint(text);
-      if ((!isNaN(x = parseInt(rawPoint.x, 10))) && (!isNaN(y = parseInt(rawPoint.y, 10)))
-        && isInRectangle(originPoint = {x: x, y: y}, MAIN_PIN_RECTANGLE)) {
-        targetPoint = getMainPinTargetPoint(originPoint);
+      var parsedPoint = {x: parseInt(rawPoint.x, 10), y: parseInt(rawPoint.y, 10)};
+      if (!isNaN(parsedPoint.x) && !isNaN(parsedPoint.y)) {
+        var originPoint = coerceToRectangle(parsedPoint);
+        var targetPoint = getMainPinTargetPoint(originPoint);
         moveElement(elements.mainPinElement, targetPoint);
       }
     },

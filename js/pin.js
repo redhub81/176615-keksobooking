@@ -30,16 +30,16 @@ window.pin = (function () {
     var pinElement = document.createElement('div');
     pinElement.id = createPinId(advert.id);
     pinElement.classList.add('pin');
-    var xPosition = advert.location.x - Math.round(0.5 * settings.PIN.WIDTH);
-    var yPosition = advert.location.y - settings.PIN.HEIGHT;
+    var xPosition = advert.location.x - Math.round(0.5 * settings.otherPin.width);
+    var yPosition = advert.location.y - settings.otherPin.height;
     pinElement.style.left = xPosition + 'px';
     pinElement.style.top = yPosition + 'px';
 
     var childElement = document.createElement('img');
     childElement.src = advert.author.avatar;
     childElement.classList.add('rounded');
-    childElement.width = settings.PIN.IMG.WIDTH;
-    childElement.height = settings.PIN.IMG.HEIGHT;
+    childElement.width = settings.otherPin.img.width;
+    childElement.height = settings.otherPin.img.height;
 
     pinElement.appendChild(childElement);
     pinElement.tabIndex = '0';
@@ -114,7 +114,7 @@ window.pin = (function () {
 
       pin.addEventListener('focus', function (focusEvt) {
         pinKeydownHandler = function (keydownEvt) {
-          if (eventHelper.isActivatedByKeyCode(keydownEvt, eventHelper.KEYS.ENTER)) {
+          if (eventHelper.isActivatedByKeyCode(keydownEvt, eventHelper.keys.enter)) {
             var pinTarget = keydownEvt.currentTarget;
             activatePin(pinTarget);
           }
@@ -200,6 +200,5 @@ window.pin = (function () {
      */
     onDeactivatePin: function (advertId) {}
   };
-
   return thisModule;
 })();

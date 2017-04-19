@@ -14,17 +14,15 @@ window.form = (function () {
    ******************************************************************************/
 
   var initElements = function () {
-    elements.noticeFormElement = document.querySelector('.notice__form');
-    elements.timeSelectElement = document.getElementById('time');
-    elements.timeoutSelectElement = document.getElementById('timeout');
-    elements.lodgingTypeSelectElement = document.getElementById('type');
-    elements.priceInputElement = document.getElementById('price');
-    elements.roomsSelectElement = document.getElementById('room_number');
-    elements.guestsSelectElement = document.getElementById('capacity');
-    elements.addressElement = document.getElementById('address');
-
-    elements.pinMapElement = document.querySelector('.tokyo__pin-map');
-
+    var formElement = document.querySelector('.notice__form');
+    elements.noticeFormElement = formElement;
+    elements.timeSelectElement = formElement.querySelector('#time');
+    elements.timeoutSelectElement = formElement.querySelector('#timeout');
+    elements.lodgingTypeSelectElement = formElement.querySelector('#type');
+    elements.priceInputElement = formElement.querySelector('#price');
+    elements.roomsSelectElement = formElement.querySelector('#room_number');
+    elements.guestsSelectElement = formElement.querySelector('#capacity');
+    elements.addressElement = formElement.querySelector('#address');
     return Array.prototype.every.call(elements, function (module) {
       return typeof elements !== 'undefined';
     });
@@ -100,7 +98,7 @@ window.form = (function () {
    ******************************************************************************/
 
   var initNoticeFormValidation = function (noticeForm) {
-    var setErrorMerker = function (formElement) {
+    var setErrorMarker = function (formElement) {
       formElement.classList.add('invalid');
     };
     var removeErrorMarker = function (formElement) {
@@ -116,7 +114,7 @@ window.form = (function () {
           noticeFormInputHandler = null;
         }
       };
-      setErrorMerker(suspectFormElement);
+      setErrorMarker(suspectFormElement);
       noticeForm.addEventListener('input', noticeFormInputHandler, true);
     }, true);
 
@@ -146,7 +144,6 @@ window.form = (function () {
       setAddress(addressInfo.newAddress);
     });
   };
-
 
   /** Публикация интерфейса модуля.
    ******************************************************************************/
@@ -197,7 +194,7 @@ window.form = (function () {
      * Вызывается после отправке данных формы.
      * @param {Object} formData данные формы.
      */
-    onSubmited: function (formData) {}
+    onSubmit: function (formData) {}
   };
   return thisModule;
 })();

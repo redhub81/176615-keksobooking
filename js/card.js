@@ -24,24 +24,26 @@ window.card = (function () {
 
     element.querySelector('.lodge__title').textContent = advert.offer.title;
     element.querySelector('.lodge__address').textContent = advert.offer.address;
-    element.querySelector('.lodge__price').innerHTML = textHelper.format(settings.ADVERT.OFFER.FORMATS.PRICE, [advert.offer.price]);
-    element.querySelector('.lodge__type').textContent = settings.ADVERT.OFFER.TYPE.LABELS[advert.offer.type];
-    element.querySelector('.lodge__rooms-and-guests').textContent = textHelper.format(settings.ADVERT.OFFER.FORMATS.CHECK_TIME,
-      [advert.offer.checkin, advert.offer.checkout]);
+    element.querySelector('.lodge__price').innerHTML = textHelper
+      .format(settings.advert.offer.formats.price, [advert.offer.price]);
+    element.querySelector('.lodge__type').textContent = settings.advert.offer.type.labels[advert.offer.type];
+    element.querySelector('.lodge__rooms-and-guests').textContent = textHelper
+      .format(settings.advert.offer.formats.roomsAndGuests, [advert.offer.guests, advert.offer.rooms]);
+    element.querySelector('.lodge__checkin-time').textContent = textHelper
+      .format(settings.advert.offer.formats.checkTime, [advert.offer.checkin, advert.offer.checkout]);
 
+    var featureContainerElement = element.querySelector('.lodge__features');
     for (var index = 0; index < advert.offer.features.length; index++) {
       var feature = advert.offer.features[index];
-      var featureClassFormat = '"feature__image feature__image--{0}';
+      var featureClassFormat = 'feature__image feature__image--{{0}}';
       var featureClass = textHelper.format(featureClassFormat, [feature]);
 
       var featureElement = document.createElement('span');
       featureElement.className = featureClass;
 
-      element.querySelector('.lodge__features').appendChild(featureElement);
+      featureContainerElement.appendChild(featureElement);
     }
-
     element.querySelector('.lodge__description').textContent = advert.offer.description;
-
     return element;
   };
 
@@ -57,7 +59,6 @@ window.card = (function () {
 
   var clearAdvertDialog = function () {
     var dialogPanel = elements.advertDialogElement.querySelector('.dialog__panel');
-
     dialogPanel.innerHTML = '';
   };
 
@@ -79,27 +80,6 @@ window.card = (function () {
     }
   };
 
-  var subscribeDialogCloseEvents = function () {
-    advertDialogCloseElementClickHandler = function () {
-      closeAdvertDialog();
-    };
-    elements.advertDialogCloseElement.addEventListener('click', advertDialogCloseElementClickHandler);
-
-    advertDialogCloseElementKeydownHandler = function (keydownEvt) {
-      if (eventHelper.isActivatedByKeyCode(keydownEvt, eventHelper.KEYS.ESCAPE)) {
-        closeAdvertDialog();
-      }
-    };
-    elements.advertDialogCloseElement.addEventListener('keydown', advertDialogCloseElementKeydownHandler);
-
-    advertDialogElementKeydownHandler = function (keydownEvt) {
-      if (eventHelper.isActivatedByKeyCode(keydownEvt, eventHelper.KEYS.ESCAPE)) {
-        closeAdvertDialog();
-      }
-    };
-    document.addEventListener('keydown', advertDialogElementKeydownHandler);
-  };
-
   var closeAdvertDialog = function () {
     elements.advertDialogElement.style.display = 'none';
 
@@ -108,6 +88,27 @@ window.card = (function () {
 
     thisModule.onClose(currentAdvertId);
     currentAdvertId = -1;
+  };
+
+  var subscribeDialogCloseEvents = function () {
+    advertDialogCloseElementClickHandler = function () {
+      closeAdvertDialog();
+    };
+    elements.advertDialogCloseElement.addEventListener('click', advertDialogCloseElementClickHandler);
+
+    advertDialogCloseElementKeydownHandler = function (keydownEvt) {
+      if (eventHelper.isActivatedByKeyCode(keydownEvt, eventHelper.keys.escape)) {
+        closeAdvertDialog();
+      }
+    };
+    elements.advertDialogCloseElement.addEventListener('keydown', advertDialogCloseElementKeydownHandler);
+
+    advertDialogElementKeydownHandler = function (keydownEvt) {
+      if (eventHelper.isActivatedByKeyCode(keydownEvt, eventHelper.keys.escape)) {
+        closeAdvertDialog();
+      }
+    };
+    document.addEventListener('keydown', advertDialogElementKeydownHandler);
   };
 
   var showAdvertDialog = function (advert) {
@@ -162,10 +163,6 @@ window.card = (function () {
      * @param {Object} advert Модель вида объявления.
      */
     onShow: function (advert) {},
-    /**
-     * Закрывает диалоговую панель объявления.
-     */
-    close: closeAdvertDialog,
     /**
      * Вызывается после закрытия диалоговой панели объявления.
      * @param {int} advertId Идентификатор объявления.
