@@ -3,6 +3,7 @@
 
 window.map = (function () {
   var MAIN_PIN_RECTANGLE = {x0: 300, x1: 900, y0: 175, y1: 500};
+  var MAIN_PIN_OFFSET;
 
   var thisModule;
   var settings;
@@ -45,7 +46,7 @@ window.map = (function () {
   };
 
   var isInRange = function (position, range) {
-    var fixedPosition = position.toFixed(0);
+    var fixedPosition = Math.round(position);
     return range.min <= fixedPosition && fixedPosition <= range.max;
   };
 
@@ -78,15 +79,15 @@ window.map = (function () {
 
   var getMainPinTargetPoint = function (originPoint) {
     return {
-      x: originPoint.x - 0.5 * settings.MAIN_PIN.WIDTH,
-      y: originPoint.y - settings.MAIN_PIN.HEIGHT
+      x: originPoint.x - MAIN_PIN_OFFSET.x,
+      y: originPoint.y - MAIN_PIN_OFFSET.y
     };
   };
 
   var getMainPinOriginPoint = function (targetPoint) {
     return {
-      x: targetPoint.x + 0.5 * settings.MAIN_PIN.WIDTH,
-      y: targetPoint.y + settings.MAIN_PIN.HEIGHT
+      x: targetPoint.x + MAIN_PIN_OFFSET.x,
+      y: targetPoint.y + MAIN_PIN_OFFSET.y
     };
   };
 
@@ -95,7 +96,7 @@ window.map = (function () {
     var yMatch = text.match(yRegExp);
     return {
       x: xMatch !== null ? xMatch[1] : null,
-      y: yMatch !== null ? yMatch[1] : null,
+      y: yMatch !== null ? yMatch[1] : null
     };
   };
 
@@ -196,8 +197,8 @@ window.map = (function () {
       if (initResult) {
         subscribe();
 
-        var mainPinOffset = {x: 0.5 * settings.MAIN_PIN.WIDTH, y: settings.MAIN_PIN.HEIGHT};
-        var doDragByOriginResult = doDragByOrigin(elements.mainPinElement, mainPinOffset, MAIN_PIN_RECTANGLE);
+        MAIN_PIN_OFFSET = {x: Math.round(0.5 * settings.MAIN_PIN.WIDTH), y: settings.MAIN_PIN.HEIGHT};
+        var doDragByOriginResult = doDragByOrigin(elements.mainPinElement, MAIN_PIN_OFFSET, MAIN_PIN_RECTANGLE);
         doDragByOriginResult.onDrag = function (originPoint) {
           thisModule.onMainPinMove(originPoint);
         };

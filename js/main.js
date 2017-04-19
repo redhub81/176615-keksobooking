@@ -38,7 +38,7 @@ window.main = (function () {
    ******************************************************************************/
 
   var getAddressByLocation = function (point) {
-    return modules.textHelper.format(modules.settings.NOTICE_FORM.ADDRESS.FORMAT, [point.x.toFixed(0), point.y.toFixed(0)]);
+    return modules.textHelper.format(modules.settings.NOTICE_FORM.ADDRESS.FORMAT, [point.x, point.y]);
   };
 
   var subscribe = function () {
@@ -46,8 +46,10 @@ window.main = (function () {
       var address = getAddressByLocation(point);
       modules.form.setAddress(address);
     };
-    modules.form.onAddressChanged = function (text) {
-      modules.map.parseMainPinPosition(text);
+    modules.form.onAddressChanged = function (addressInfo) {
+      modules.map.parseMainPinPosition(addressInfo.newAddress);
+      addressInfo.oldAddress = addressInfo.newAddress;
+      addressInfo.newAddress = getAddressByLocation(modules.map.getMainPinPosition());
     };
 
     modules.form.onSubmited = function () {

@@ -135,9 +135,15 @@ window.form = (function () {
   /** Обработка ввода.
    ******************************************************************************/
 
+  var setAddress = function (text) {
+    elements.addressElement.value = text;
+  };
+
   var subscribeAddressChanged = function (addressElement) {
     addressElement.addEventListener('change', function (changeEvt) {
-      thisModule.onAddressChanged(changeEvt.target.value);
+      var addressInfo = {oldAddress: null, newAddress: changeEvt.target.value};
+      thisModule.onAddressChanged(addressInfo);
+      setAddress(addressInfo.newAddress);
     });
   };
 
@@ -176,14 +182,12 @@ window.form = (function () {
      * Задает новое значение поля адреса.
      * @param {string} text Текст поля адреса.
      */
-    setAddress: function (text) {
-      elements.addressElement.value = text;
-    },
+    setAddress: setAddress,
     /**
      * Вызывается после изменения адреса.
-     * @param {string} text Новое значение адреса.
+     * @param {Object} addressInfo Новое значение адреса.
      */
-    onAddressChanged: function (text) {},
+    onAddressChanged: function (addressInfo) {},
     /**
      * Вызывается при отправке данных формы.
      * @param {Object} formData данные формы.
