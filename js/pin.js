@@ -102,9 +102,9 @@ window.pin = (function () {
 
   var subscrube = function () {
     var pinKeydownHandler = null;
-    var pins = elements.pinMapElement.querySelectorAll('.pin');
+    var pins = elements.pinMapElement.querySelectorAll('.pin:not(.pin__main)');
 
-    for (var index = 1; index < pins.length; index++) {
+    for (var index = 0; index < pins.length; index++) {
       var pin = pins[index];
 
       pin.addEventListener('click', function (evt) {
@@ -162,7 +162,7 @@ window.pin = (function () {
     show: function () {
       var adverts = data.getAdverts();
       var pinFragment = renderPinsFragment(adverts);
-      elements.pinMapElement.appendChild(pinFragment);
+      elements.pinMapElement.insertBefore(pinFragment, elements.mainPinElement);
       subscrube();
     },
     /**

@@ -9,6 +9,8 @@ window.map = (function () {
   var parent;
   var pin;
   var card;
+  var xRegExp;
+  var yRegExp;
 
   var elements = {};
 
@@ -20,7 +22,7 @@ window.map = (function () {
     elements.advertDialogCloseElement = elements.advertDialogElement.querySelector('.dialog__close');
 
     elements.lodgeTemplate = document.querySelector('#lodge-template').content;
-    elements.advertDialogTitleImage = document.querySelector('.dialog__title img');
+    elements.advertDialogTitleImage = elements.advertDialogElement.querySelector('.dialog__title img');
 
     elements.pinMapElement = document.querySelector('.tokyo__pin-map');
 
@@ -60,13 +62,18 @@ window.map = (function () {
   };
 
   var moveElement = function (element, point) {
+    var changePosition = function (oldPosition, newPosition, callBackHandler) {
+      if (newPosition !== oldPosition) {
+        callBackHandler(newPosition !== null ? newPosition + 'px' : null);
+      }
+    };
     var currentPoint = getElementPoint(element);
-    if (point.x !== currentPoint.x) {
-      element.style.left = point.x + 'px';
-    }
-    if (point.y !== currentPoint.y) {
-      element.style.top = point.y + 'px';
-    }
+    changePosition(currentPoint.x, point.x, function (targetPosition) {
+      element.style.left = targetPosition;
+    });
+    changePosition(currentPoint.y, point.y, function (targetPosition) {
+      element.style.top = targetPosition;
+    });
   };
 
   var getMainPinTargetPoint = function (originPoint) {
@@ -80,6 +87,15 @@ window.map = (function () {
     return {
       x: targetPoint.x + 0.5 * settings.MAIN_PIN.WIDTH,
       y: targetPoint.y + settings.MAIN_PIN.HEIGHT
+    };
+  };
+
+  var parsePoint = function (text) {
+    var xMatch = text.match(xRegExp);
+    var yMatch = text.match(yRegExp);
+    return {
+      x: xMatch !== null ? xMatch[1] : null,
+      y: yMatch !== null ? yMatch[1] : null,
     };
   };
 
@@ -185,6 +201,8 @@ window.map = (function () {
         doDragByOriginResult.onDrag = function (originPoint) {
           thisModule.onMainPinMove(originPoint);
         };
+        xRegExp = new RegExp(settings.NOTICE_FORM.ADDRESS.PARSE_X_PATTERN);
+        yRegExp = new RegExp(settings.NOTICE_FORM.ADDRESS.PARSE_Y_PATTERN);
       }
 
       return initResult;
@@ -209,14 +227,16 @@ window.map = (function () {
      * @param {string} text Текстовое представление позиции метки.
      */
     parseMainPinPosition: function (text) {
-      var items = text.split(',');
       var x;
       var y;
       var originPoint;
       var targetPoint;
-      if (items.length === 2
-        && (!isNaN(x = parseInt(items[0], 10)))
-        && (!isNaN(y = parseInt(items[1], 10)))
+      if (text === null) {
+        moveElement(elements.mainPinElement, {x: null, y: null});
+        return;
+      }
+      var rawPoint = parsePoint(text);
+      if ((!isNaN(x = parseInt(rawPoint.x, 10))) && (!isNaN(y = parseInt(rawPoint.y, 10)))
         && isInRectangle(originPoint = {x: x, y: y}, MAIN_PIN_RECTANGLE)) {
         targetPoint = getMainPinTargetPoint(originPoint);
         moveElement(elements.mainPinElement, targetPoint);

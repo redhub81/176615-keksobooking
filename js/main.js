@@ -38,7 +38,7 @@ window.main = (function () {
    ******************************************************************************/
 
   var getAddressByLocation = function (point) {
-    return modules.textHelper.format(modules.settings.ADVERT.OFFER.FORMATS.ADDRESS, [point.x.toFixed(0), point.y.toFixed(0)]);
+    return modules.textHelper.format(modules.settings.NOTICE_FORM.ADDRESS.FORMAT, [point.x.toFixed(0), point.y.toFixed(0)]);
   };
 
   var subscribe = function () {
@@ -49,6 +49,19 @@ window.main = (function () {
     modules.form.onAddressChanged = function (text) {
       modules.map.parseMainPinPosition(text);
     };
+
+    modules.form.onSubmited = function () {
+      modules.map.parseMainPinPosition(null);
+      setup();
+    };
+  };
+
+  /** Настройка модулей.
+   ******************************************************************************/
+
+  var setup = function () {
+    var address = getAddressByLocation(modules.map.getMainPinPosition());
+    modules.form.setAddress(address);
   };
 
   /** Публикация интерфейса модуля.
@@ -67,8 +80,7 @@ window.main = (function () {
         modules.pin.show();
         modules.pin.activatePin(defaultAdvertId);
 
-        var address = getAddressByLocation(modules.map.getMainPinPosition());
-        modules.form.setAddress(address);
+        setup();
       }
     }
   };

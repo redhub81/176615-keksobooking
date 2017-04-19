@@ -90,6 +90,12 @@ window.form = (function () {
     };
   };
 
+  var updateBinding = function () {
+    binding.updateTimeOut();
+    binding.updatePrice();
+    binding.updateGuestsSelect();
+  };
+
   /** Валидация.
    ******************************************************************************/
 
@@ -116,8 +122,13 @@ window.form = (function () {
 
     noticeForm.addEventListener('submit', function (submitEvt) {
       submitEvt.preventDefault();
-      noticeForm.submit();
+
+      thisModule.onSubmiting();
+
       noticeForm.reset();
+      updateBinding();
+
+      thisModule.onSubmited();
     });
   };
 
@@ -147,9 +158,7 @@ window.form = (function () {
       if (initResult) {
         initNoticeFormValidation(elements.noticeFormElement);
         binding = bindNoticeFormElements();
-        binding.updateTimeOut();
-        binding.updatePrice();
-        binding.updateGuestsSelect();
+        updateBinding();
       }
 
       subscribeAddressChanged(elements.addressElement);
@@ -174,7 +183,17 @@ window.form = (function () {
      * Вызывается после изменения адреса.
      * @param {string} text Новое значение адреса.
      */
-    onAddressChanged: function (text) {}
+    onAddressChanged: function (text) {},
+    /**
+     * Вызывается при отправке данных формы.
+     * @param {Object} formData данные формы.
+     */
+    onSubmiting: function (formData) {},
+    /**
+     * Вызывается после отправке данных формы.
+     * @param {Object} formData данные формы.
+     */
+    onSubmited: function (formData) {}
   };
   return thisModule;
 })();

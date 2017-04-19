@@ -18,9 +18,9 @@ window.defaultSettings = (function () {
           }
         },
         FORMATS: {
-          ADDRESS: '{0}, {1}',
-          PRICE: '{0}&#x20bd;/ночь',
-          CHECK_TIME: 'Заезд после {0}, выезд до {1}'
+          ADDRESS: '{{0}}, {{1}}',
+          PRICE: '{{0}}&#x20bd;/ночь',
+          CHECK_TIME: 'Заезд после {{0}}, выезд до {{1}}'
         },
         TITLES: [
           'Большая уютная квартира',
@@ -49,7 +49,7 @@ window.defaultSettings = (function () {
       AUTHOR: {
         AVATAR: {
           FORMATS: {
-            URL: 'img/avatars/user{0}.png'
+            URL: 'img/avatars/user{{0}}.png'
           }
         }
       }
@@ -65,6 +65,13 @@ window.defaultSettings = (function () {
     MAIN_PIN: {
       WIDTH: 75,
       HEIGHT: 94
+    },
+    NOTICE_FORM: {
+      ADDRESS: {
+        FORMAT: 'x: {{0}}, y: {{1}}',
+        PARSE_X_PATTERN: 'x: (\\d+)',
+        PARSE_Y_PATTERN: 'y: (\\d+)'
+      }
     }
   };
 })();

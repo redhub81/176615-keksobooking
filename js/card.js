@@ -163,7 +163,7 @@ window.card = (function () {
      */
     onShow: function (advert) {},
     /**
-     * Закрывает диалоговую панели объявления.
+     * Закрывает диалоговую панель объявления.
      */
     close: closeAdvertDialog,
     /**
