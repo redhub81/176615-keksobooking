@@ -3,11 +3,11 @@
 
 window.textHelper = (function () {
   return {
-    format: function (text, formats) {
-      for (var index = 0; index < formats.length; index++) {
-        text = text.replace('{' + index + '}', formats[index]);
+    format: function (format, values) {
+      for (var index = 0; index < values.length; index++) {
+        format = format.replace('{{' + index + '}}', values[index]);
       }
-      return text;
+      return format;
     }
   };
 })();

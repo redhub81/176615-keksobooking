@@ -4,6 +4,7 @@
 window.form = (function () {
   var PRICE_MAPPING = [0, 1000, 10000];
 
+  var thisModule;
   var parent;
 
   var elements = {};
@@ -13,21 +14,18 @@ window.form = (function () {
    ******************************************************************************/
 
   var initElements = function () {
-    elements.noticeFormElement = document.querySelector('.notice__form');
-    elements.timeSelectElement = document.getElementById('time');
-    elements.timeoutSelectElement = document.getElementById('timeout');
-    elements.lodgingTypeSelectElement = document.getElementById('type');
-    elements.priceInputElement = document.getElementById('price');
-    elements.roomsSelectElement = document.getElementById('room_number');
-    elements.guestsSelectElement = document.getElementById('capacity');
-
-    elements.pinMapElement = document.querySelector('.tokyo__pin-map');
-
-    var initResult = Array.prototype.every.call(elements, function (module) {
+    var formElement = document.querySelector('.notice__form');
+    elements.noticeFormElement = formElement;
+    elements.timeSelectElement = formElement.querySelector('#time');
+    elements.timeoutSelectElement = formElement.querySelector('#timeout');
+    elements.lodgingTypeSelectElement = formElement.querySelector('#type');
+    elements.priceInputElement = formElement.querySelector('#price');
+    elements.roomsSelectElement = formElement.querySelector('#room_number');
+    elements.guestsSelectElement = formElement.querySelector('#capacity');
+    elements.addressElement = formElement.querySelector('#address');
+    return Array.prototype.every.call(elements, function (module) {
       return typeof elements !== 'undefined';
     });
-
-    return initResult;
   };
 
   /** Свзязывание полей формы.
@@ -90,11 +88,17 @@ window.form = (function () {
     };
   };
 
+  var updateBinding = function () {
+    binding.updateTimeOut();
+    binding.updatePrice();
+    binding.updateGuestsSelect();
+  };
+
   /** Валидация.
    ******************************************************************************/
 
   var initNoticeFormValidation = function (noticeForm) {
-    var setErrorMerker = function (formElement) {
+    var setErrorMarker = function (formElement) {
       formElement.classList.add('invalid');
     };
     var removeErrorMarker = function (formElement) {
@@ -110,21 +114,41 @@ window.form = (function () {
           noticeFormInputHandler = null;
         }
       };
-      setErrorMerker(suspectFormElement);
+      setErrorMarker(suspectFormElement);
       noticeForm.addEventListener('input', noticeFormInputHandler, true);
     }, true);
 
     noticeForm.addEventListener('submit', function (submitEvt) {
       submitEvt.preventDefault();
-      noticeForm.submit();
+
+      thisModule.onSubmiting();
+
       noticeForm.reset();
+      updateBinding();
+
+      thisModule.onSubmited();
+    });
+  };
+
+  /** Обработка ввода.
+   ******************************************************************************/
+
+  var setAddress = function (text) {
+    elements.addressElement.value = text;
+  };
+
+  var subscribeAddressChanged = function (addressElement) {
+    addressElement.addEventListener('change', function (changeEvt) {
+      var addressInfo = {oldAddress: null, newAddress: changeEvt.target.value};
+      thisModule.onAddressChanged(addressInfo);
+      setAddress(addressInfo.newAddress);
     });
   };
 
   /** Публикация интерфейса модуля.
    ******************************************************************************/
 
-  return {
+  thisModule = {
     /**
      * Инициализирует модуль.
      * @param {Object} parentModule Родительский модуль.
@@ -137,10 +161,10 @@ window.form = (function () {
       if (initResult) {
         initNoticeFormValidation(elements.noticeFormElement);
         binding = bindNoticeFormElements();
-        binding.updateTimeOut();
-        binding.updatePrice();
-        binding.updateGuestsSelect();
+        updateBinding();
       }
+
+      subscribeAddressChanged(elements.addressElement);
 
       return initResult;
     },
@@ -151,5 +175,26 @@ window.form = (function () {
     getParent: function () {
       return parent;
     },
+    /**
+     * Задает новое значение поля адреса.
+     * @param {string} text Текст поля адреса.
+     */
+    setAddress: setAddress,
+    /**
+     * Вызывается после изменения адреса.
+     * @param {Object} addressInfo Новое значение адреса.
+     */
+    onAddressChanged: function (addressInfo) {},
+    /**
+     * Вызывается при отправке данных формы.
+     * @param {Object} formData данные формы.
+     */
+    onSubmiting: function (formData) {},
+    /**
+     * Вызывается после отправке данных формы.
+     * @param {Object} formData данные формы.
+     */
+    onSubmit: function (formData) {}
   };
+  return thisModule;
 })();

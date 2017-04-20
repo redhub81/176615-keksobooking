@@ -2,6 +2,10 @@
 'use strict';
 
 window.data = (function (modules) {
+  var NUMBER_ID_LENGTH = 2;
+  var NUMBER_ID_MIN = 0;
+  var NUMBER_ID_MAX = 100;
+
   var parent;
   var settings;
   var textHelper;
@@ -48,11 +52,11 @@ window.data = (function (modules) {
     return result;
   };
 
-  var createNumberId = function (number, length) {
+  var createNumberId = function (number) {
     var numberAsString = number.toString();
-    var leadZeroCount = length - numberAsString.length;
+    var leadZeroCount = NUMBER_ID_LENGTH - numberAsString.length;
     var prefix = leadZeroCount > 0
-      ? Array(leadZeroCount + 1).join('0')
+      ? (new Array(leadZeroCount + 1)).join('0')
       : '';
     return prefix + numberAsString;
   };
@@ -61,21 +65,22 @@ window.data = (function (modules) {
    ******************************************************************************/
 
   var getOfferTitle = function (number, substitution) {
-    return settings.ADVERT.OFFER.TITLES[substitution[number]];
+    return settings.advert.offer.titles[substitution[number]];
   };
 
   var createLocation = function () {
+    var BOUNDING_BOX = settings.map.pinPanel.boundingBox;
     return {
-      x: getRandomInt(300, 900),
-      y: getRandomInt(100 + settings.PIN.HEIGHT, 500)
+      x: getRandomInt(BOUNDING_BOX.x0, BOUNDING_BOX.x1),
+      y: getRandomInt(BOUNDING_BOX.y0, BOUNDING_BOX.y1)
     };
   };
 
   var createAuthor = function (id) {
     var result;
-    if (id && id >= 0 && id < 100) {
+    if (id && id >= NUMBER_ID_MIN && id < NUMBER_ID_MAX) {
       result = {
-        avatar: textHelper.format(settings.ADVERT.AUTHOR.AVATAR.FORMATS.URL, [createNumberId(id, 2)])
+        avatar: textHelper.format(settings.advert.author.avatar.formats.url, [createNumberId(id)])
       };
     }
     return result;
@@ -84,14 +89,14 @@ window.data = (function (modules) {
   var createOffer = function (title, location) {
     return {
       title: title,
-      address: textHelper.format(settings.ADVERT.OFFER.FORMATS.ADDRESS, [location.x, location.y]),
-      price: getRandomInt(1000, 1000000),
-      type: getRandomItem(settings.ADVERT.OFFER.TYPE.KINDS),
-      rooms: getRandomInt(1, 5),
-      guests: getRandomInt(1, 10),
-      checkin: getRandomItem(settings.ADVERT.OFFER.CHECK_TIME),
-      checkout: getRandomItem(settings.ADVERT.OFFER.CHECK_TIME),
-      features: getRandomItemsWithoutRepetition(settings.ADVERT.OFFER.FEATURES, getRandomInt(0, settings.ADVERT.OFFER.FEATURES.length)),
+      address: textHelper.format(settings.advert.offer.formats.address, [location.x, location.y]),
+      price: getRandomInt(settings.advert.offer.price.min, settings.advert.offer.price.max),
+      type: getRandomItem(settings.advert.offer.type.kinds),
+      rooms: getRandomInt(settings.advert.offer.room.count.min, settings.advert.offer.room.count.max),
+      guests: getRandomInt(settings.advert.offer.guest.count.min, settings.advert.offer.guest.count.max),
+      checkin: getRandomItem(settings.advert.offer.checkTime),
+      checkout: getRandomItem(settings.advert.offer.checkTime),
+      features: getRandomItemsWithoutRepetition(settings.advert.offer.features, getRandomInt(0, settings.advert.offer.features.length)),
       description: '',
       photos: []
     };
@@ -110,7 +115,7 @@ window.data = (function (modules) {
   var createAdverts = function () {
     var adverts = [];
 
-    var advertCount = settings.ADVERT.OFFER.TITLES.length;
+    var advertCount = settings.advert.offer.titles.length;
     var titleSubstitution = getRandomSubstitutionWithoutRepetition(advertCount, advertCount);
     var numberSubstitution = getRandomSubstitutionWithoutRepetition(advertCount, advertCount);
 
@@ -168,10 +173,9 @@ window.data = (function (modules) {
      * @return {Object} Данные объявления.
      */
     getAdvertById: function (advertId) {
-      var advertItem = advertItems.find(function (element) {
+      return advertItems.find(function (element) {
         return element.id === advertId;
       });
-      return advertItem;
     }
   };
 })();

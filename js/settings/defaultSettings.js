@@ -3,26 +3,27 @@
 
 window.defaultSettings = (function () {
   return {
-    ADVERT: {
-      OFFER: {
-        TYPE: {
-          KINDS: [
+    advert: {
+      offer: {
+        type: {
+          kinds: [
             'flat',
             'house',
             'bungalo'
           ],
-          LABELS: {
+          labels: {
             flat: 'Квартира',
             house: 'Дом',
             bungalo: 'Бунгало'
           }
         },
-        FORMATS: {
-          ADDRESS: '{0}, {1}',
-          PRICE: '{0}&#x20bd;/ночь',
-          CHECK_TIME: 'Заезд после {0}, выезд до {1}',
+        formats: {
+          address: '{{0}}, {{1}}',
+          price: '{{0}}&#x20bd;/ночь',
+          roomsAndGuests: 'Для {{0}} гостей в {{1}} комнатах',
+          checkTime: 'Заезд после {{0}}, выезд до {{1}}'
         },
-        TITLES: [
+        titles: [
           'Большая уютная квартира',
           'Маленькая неуютная квартира',
           'Огромный прекрасный дворец',
@@ -32,12 +33,12 @@ window.defaultSettings = (function () {
           'Уютное бунгало далеко от моря',
           'Неуютное бунгало по колено в воде'
         ],
-        CHECK_TIME: [
+        checkTime: [
           '12:00',
           '13:00',
           '14:00'
         ],
-        FEATURES: [
+        features: [
           'wifi',
           'dishwasher',
           'parking',
@@ -45,21 +46,58 @@ window.defaultSettings = (function () {
           'elevator',
           'conditioner'
         ],
+        price: {
+          min: 1000,
+          max: 1000000
+        },
+        room: {
+          count: {
+            min: 1,
+            max: 5
+          }
+        },
+        guest: {
+          count: {
+            min: 1,
+            max: 10
+          }
+        }
       },
-      AUTHOR: {
-        AVATAR: {
-          FORMATS: {
-            URL: 'img/avatars/user{0}.png'
+      author: {
+        avatar: {
+          formats: {
+            url: 'img/avatars/user{{0}}.png'
           }
         }
       }
     },
-    PIN: {
-      WIDTH: 56,
-      HEIGHT: 75,
-      IMG: {
-        WIDTH: 40,
-        HEIGHT: 40
+    otherPin: {
+      width: 56,
+      height: 75,
+      img: {
+        width: 40,
+        height: 40
+      }
+    },
+    mainPin: {
+      width: 75,
+      height: 94
+    },
+    noticeForm: {
+      address: {
+        format: 'x: {{0}}, y: {{1}}',
+        parseXPattern: /x: (\d+)/,
+        parseYPattern: /y: (\d+)/
+      }
+    },
+    map: {
+      pinPanel: {
+        boundingBox: {
+          x0: 300,
+          x1: 900,
+          y0: 175,
+          y1: 500
+        }
       }
     }
   };

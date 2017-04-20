@@ -3,9 +3,9 @@
 
 window.eventHelper = (function () {
   return {
-    KEYS: {
-      ENTER: 13,
-      ESCAPE: 27
+    keys: {
+      enter: 13,
+      escape: 27
     },
     isActivatedByKeyCode: function (evt, keyCode) {
       return evt.keyCode && evt.keyCode === keyCode;
