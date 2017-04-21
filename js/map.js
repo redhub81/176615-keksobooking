@@ -7,40 +7,35 @@ window.map = (function () {
   var PIN_PANEL_Y_RANGE;
 
   var thisModule;
-  var settings;
-  var parent;
-  var pin;
-  var card;
-
-  var elements = {};
+  var modulesCache;
+  var elementsCache = {};
 
   /** Инициализация элементов.
    ******************************************************************************/
 
   var initElements = function () {
-    elements.advertDialogElement = document.querySelector('.dialog');
-    elements.advertDialogCloseElement = elements.advertDialogElement.querySelector('.dialog__close');
+    elementsCache.advertDialogElement = document.querySelector('.dialog');
+    elementsCache.advertDialogCloseElement = elementsCache.advertDialogElement.querySelector('.dialog__close');
+    elementsCache.lodgeTemplate = document.querySelector('#lodge-template').content;
+    elementsCache.advertDialogTitleImage = elementsCache.advertDialogElement.querySelector('.dialog__title img');
+    elementsCache.pinMapElement = document.querySelector('.tokyo__pin-map');
+    elementsCache.mainPinElement = elementsCache.pinMapElement.querySelector('.pin__main');
 
-    elements.lodgeTemplate = document.querySelector('#lodge-template').content;
-    elements.advertDialogTitleImage = elements.advertDialogElement.querySelector('.dialog__title img');
-
-    elements.pinMapElement = document.querySelector('.tokyo__pin-map');
-
-    var initResult = Array.prototype.every.call(elements, function (module) {
-      return typeof elements !== 'undefined';
-    });
-
-    elements.mainPinElement = elements.pinMapElement.querySelector('.pin__main');
-
-    return initResult;
+    for (var elementKey in elementsCache) {
+      if (typeof elementsCache[elementKey] === 'undefined' || elementsCache[elementKey] === null) {
+        return false;
+      }
+    }
+    return true;
   };
 
   var subscribe = function () {
-    pin.onActivatePin = function (advertId) {
-      card.show(advertId);
-    };
-    card.onClose = function (advertId) {
-      pin.deactivatePin(advertId);
+    modulesCache.pin.onActivatePin = function (advertId) {
+      var advert = modulesCache.data.getAdvertById(advertId);
+      var showResult = modulesCache.showCard(advert, modulesCache.card, modulesCache.eventHelper, elementsCache);
+      showResult.onClose = function (closeAdvertId) {
+        modulesCache.pin.deactivatePin(closeAdvertId);
+      };
     };
   };
 
@@ -97,8 +92,8 @@ window.map = (function () {
   };
 
   var parsePoint = function (text) {
-    var xMatch = text.match(settings.noticeForm.address.parseXPattern);
-    var yMatch = text.match(settings.noticeForm.address.parseYPattern);
+    var xMatch = text.match(modulesCache.settings.noticeForm.address.parseXPattern);
+    var yMatch = text.match(modulesCache.settings.noticeForm.address.parseYPattern);
     return {
       x: xMatch !== null ? xMatch[1] : null,
       y: yMatch !== null ? yMatch[1] : null
@@ -164,31 +159,36 @@ window.map = (function () {
     /**
      * Инициализирует модуль.
      * @param {Object} parentModule Родительский модуль.
-     * @param {Object} allModules Предоставляет доступ ко всем модулям.
+     * @param {Object} parentModulesChache Предоставляет доступ к модулям.
      * @return {boolean} true - в случае успешной инициализации, иначе false.
      */
-    init: function (parentModule, allModules) {
-      parent = parentModule;
-      settings = allModules.settings;
-      pin = allModules.pin;
-      card = allModules.card;
+    init: function (parentModule, parentModulesChache) {
+      modulesCache = {
+        parent: parentModule,
+        settings: parentModulesChache.settings,
+        eventHelper: parentModulesChache.eventHelper,
+        data: parentModulesChache.data,
+        pin: parentModulesChache.pin,
+        card: parentModulesChache.card,
+        showCard: parentModulesChache.showCard
+      };
 
       var initResult = initElements();
       if (initResult) {
-        initResult &= pin.init(this, allModules, elements);
-        initResult &= card.init(this, allModules, elements);
+        initResult &= modulesCache.pin.init(this, parentModulesChache, elementsCache);
+        initResult &= modulesCache.card.init(this, parentModulesChache, elementsCache);
       }
       if (initResult) {
-        MAIN_PIN_OFFSET = {x: Math.round(0.5 * settings.mainPin.width), y: settings.mainPin.height};
-        var boundingBox = settings.map.pinPanel.boundingBox;
-        PIN_PANEL_X_RANGE = {min: boundingBox.x0, max: boundingBox.x1};
-        PIN_PANEL_Y_RANGE = {min: boundingBox.y0, max: boundingBox.y1};
+        var BOUNDING_BOX = modulesCache.settings.map.pinPanel.boundingBox;
+        PIN_PANEL_X_RANGE = {min: BOUNDING_BOX.x0, max: BOUNDING_BOX.x1};
+        PIN_PANEL_Y_RANGE = {min: BOUNDING_BOX.y0, max: BOUNDING_BOX.y1};
+        MAIN_PIN_OFFSET = {x: Math.round(0.5 * modulesCache.settings.mainPin.width), y: modulesCache.settings.mainPin.height};
 
-        subscribe();
-        var doDragByOriginResult = doDragByOrigin(elements.mainPinElement, MAIN_PIN_OFFSET, settings.map.pinPanel.boundingBox);
+        var doDragByOriginResult = doDragByOrigin(elementsCache.mainPinElement, MAIN_PIN_OFFSET, BOUNDING_BOX);
         doDragByOriginResult.onDrag = function (originPoint) {
           thisModule.onMainPinMove(originPoint);
         };
+        subscribe();
       }
       return initResult;
     },
@@ -197,14 +197,14 @@ window.map = (function () {
      * @return {Object} родительский модуль.
      */
     getParent: function () {
-      return parent;
+      return modulesCache.parent;
     },
     /**
      * Возвращает позицию метки текущего заполняемого объявления.
      * @return {Object} Точка, соответствующая позиции метки.
      */
     getMainPinPosition: function () {
-      var mainPinPoint = getElementPoint(elements.mainPinElement);
+      var mainPinPoint = getElementPoint(elementsCache.mainPinElement);
       return getMainPinOriginPoint(mainPinPoint);
     },
     /**
@@ -213,7 +213,7 @@ window.map = (function () {
      */
     parseMainPinPosition: function (text) {
       if (text === null) {
-        moveElement(elements.mainPinElement, {x: null, y: null});
+        moveElement(elementsCache.mainPinElement, {x: null, y: null});
         return;
       }
       var rawPoint = parsePoint(text);
@@ -221,7 +221,7 @@ window.map = (function () {
       if (!isNaN(parsedPoint.x) && !isNaN(parsedPoint.y)) {
         var originPoint = coerceToRectangle(parsedPoint);
         var targetPoint = getMainPinTargetPoint(originPoint);
-        moveElement(elements.mainPinElement, targetPoint);
+        moveElement(elementsCache.mainPinElement, targetPoint);
       }
     },
     /**

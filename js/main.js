@@ -3,34 +3,40 @@
 
 window.main = (function () {
   var thisModule;
-  var modules = {};
+  var modulesCache;
 
   /** Инициализация модулей.
    ******************************************************************************/
 
   var initModules = function () {
-    modules.settings = window.defaultSettings;
-    modules.eventHelper = window.eventHelper;
-    modules.textHelper = window.textHelper;
-    modules.data = window.data;
-    modules.card = window.card;
-    modules.form = window.form;
-    modules.map = window.map;
-    modules.pin = window.pin;
+    modulesCache = {
+      settings: window.defaultSettings,
+      eventHelper: window.eventHelper,
+      textHelper: window.textHelper,
+      data: window.data,
+      card: window.card,
+      form: window.form,
+      map: window.map,
+      pin: window.pin,
+      showCard: window.showCard,
+      synchronizeFields: window.synchronizeFields
+    };
 
-    return Array.prototype.every.call(modules, function (module) {
-      return typeof module !== 'undefined';
-    });
+    for (var moduleKey in modulesCache) {
+      if (typeof modulesCache[moduleKey] === 'undefined' || modulesCache[moduleKey] === null) {
+        return false;
+      }
+    }
+    return true;
   };
 
   var init = function () {
     var initResult = initModules();
     if (initResult) {
-      initResult &= modules.data.init(thisModule, modules);
-      initResult &= modules.map.init(thisModule, modules);
-      initResult &= modules.form.init(thisModule);
+      initResult &= modulesCache.data.init(thisModule, modulesCache);
+      initResult &= modulesCache.map.init(thisModule, modulesCache);
+      initResult &= modulesCache.form.init(thisModule, modulesCache);
     }
-
     return initResult;
   };
 
@@ -38,22 +44,22 @@ window.main = (function () {
    ******************************************************************************/
 
   var getAddressByLocation = function (point) {
-    return modules.textHelper.format(modules.settings.noticeForm.address.format, [point.x, point.y]);
+    return modulesCache.textHelper.format(modulesCache.settings.noticeForm.address.format, [point.x, point.y]);
   };
 
   var subscribe = function () {
-    modules.map.onMainPinMove = function (point) {
+    modulesCache.map.onMainPinMove = function (point) {
       var address = getAddressByLocation(point);
-      modules.form.setAddress(address);
+      modulesCache.form.setAddress(address);
     };
-    modules.form.onAddressChanged = function (addressInfo) {
-      modules.map.parseMainPinPosition(addressInfo.newAddress);
+    modulesCache.form.onAddressChanged = function (addressInfo) {
+      modulesCache.map.parseMainPinPosition(addressInfo.newAddress);
       addressInfo.oldAddress = addressInfo.newAddress;
-      addressInfo.newAddress = getAddressByLocation(modules.map.getMainPinPosition());
+      addressInfo.newAddress = getAddressByLocation(modulesCache.map.getMainPinPosition());
     };
 
-    modules.form.onSubmit = function () {
-      modules.map.parseMainPinPosition(null);
+    modulesCache.form.onSubmit = function () {
+      modulesCache.map.parseMainPinPosition(null);
       setup();
     };
   };
@@ -62,8 +68,8 @@ window.main = (function () {
    ******************************************************************************/
 
   var setup = function () {
-    var address = getAddressByLocation(modules.map.getMainPinPosition());
-    modules.form.setAddress(address);
+    var address = getAddressByLocation(modulesCache.map.getMainPinPosition());
+    modulesCache.form.setAddress(address);
   };
 
   /** Публикация интерфейса модуля.
@@ -77,10 +83,10 @@ window.main = (function () {
       if (init()) {
         subscribe();
 
-        modules.data.loadAdverts();
-        var defaultAdvertId = modules.data.getAdverts()[0].id;
-        modules.pin.show();
-        modules.pin.activatePin(defaultAdvertId);
+        modulesCache.data.loadAdverts();
+        var defaultAdvertId = modulesCache.data.getAdverts()[0].id;
+        modulesCache.pin.show();
+        modulesCache.pin.activatePin(defaultAdvertId);
 
         setup();
       }

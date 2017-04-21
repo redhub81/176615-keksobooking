@@ -5,12 +5,10 @@ window.data = (function (modules) {
   var NUMBER_ID_LENGTH = 2;
   var NUMBER_ID_MIN = 0;
   var NUMBER_ID_MAX = 100;
+  var OFFER_SETTINGS;
 
-  var parent;
-  var settings;
-  var textHelper;
-
-  var advertItems = [];
+  var modulesCache;
+  var advertItems;
 
   /** Вспомогательные методы.
    ******************************************************************************/
@@ -65,11 +63,11 @@ window.data = (function (modules) {
    ******************************************************************************/
 
   var getOfferTitle = function (number, substitution) {
-    return settings.advert.offer.titles[substitution[number]];
+    return OFFER_SETTINGS.titles[substitution[number]];
   };
 
   var createLocation = function () {
-    var BOUNDING_BOX = settings.map.pinPanel.boundingBox;
+    var BOUNDING_BOX = modulesCache.settings.map.pinPanel.boundingBox;
     return {
       x: getRandomInt(BOUNDING_BOX.x0, BOUNDING_BOX.x1),
       y: getRandomInt(BOUNDING_BOX.y0, BOUNDING_BOX.y1)
@@ -80,23 +78,24 @@ window.data = (function (modules) {
     var result;
     if (id && id >= NUMBER_ID_MIN && id < NUMBER_ID_MAX) {
       result = {
-        avatar: textHelper.format(settings.advert.author.avatar.formats.url, [createNumberId(id)])
+        avatar: modulesCache.textHelper.format(modulesCache.settings.advert.author.avatar.formats.url, [createNumberId(id)])
       };
     }
     return result;
   };
 
   var createOffer = function (title, location) {
+
     return {
       title: title,
-      address: textHelper.format(settings.advert.offer.formats.address, [location.x, location.y]),
-      price: getRandomInt(settings.advert.offer.price.min, settings.advert.offer.price.max),
-      type: getRandomItem(settings.advert.offer.type.kinds),
-      rooms: getRandomInt(settings.advert.offer.room.count.min, settings.advert.offer.room.count.max),
-      guests: getRandomInt(settings.advert.offer.guest.count.min, settings.advert.offer.guest.count.max),
-      checkin: getRandomItem(settings.advert.offer.checkTime),
-      checkout: getRandomItem(settings.advert.offer.checkTime),
-      features: getRandomItemsWithoutRepetition(settings.advert.offer.features, getRandomInt(0, settings.advert.offer.features.length)),
+      address: modulesCache.textHelper.format(OFFER_SETTINGS.formats.address, [location.x, location.y]),
+      price: getRandomInt(OFFER_SETTINGS.price.min, OFFER_SETTINGS.price.max),
+      type: getRandomItem(OFFER_SETTINGS.type.kinds),
+      rooms: getRandomInt(OFFER_SETTINGS.room.count.min, OFFER_SETTINGS.room.count.max),
+      guests: getRandomInt(OFFER_SETTINGS.guest.count.min, OFFER_SETTINGS.guest.count.max),
+      checkin: getRandomItem(OFFER_SETTINGS.checkTime),
+      checkout: getRandomItem(OFFER_SETTINGS.checkTime),
+      features: getRandomItemsWithoutRepetition(OFFER_SETTINGS.features, getRandomInt(0, OFFER_SETTINGS.features.length)),
       description: '',
       photos: []
     };
@@ -114,8 +113,7 @@ window.data = (function (modules) {
 
   var createAdverts = function () {
     var adverts = [];
-
-    var advertCount = settings.advert.offer.titles.length;
+    var advertCount = OFFER_SETTINGS.titles.length;
     var titleSubstitution = getRandomSubstitutionWithoutRepetition(advertCount, advertCount);
     var numberSubstitution = getRandomSubstitutionWithoutRepetition(advertCount, advertCount);
 
@@ -137,14 +135,16 @@ window.data = (function (modules) {
     /**
      * Инициализирует модуль.
      * @param {Object} parentModule Родительский модуль.
-     * @param {Object} allModules Предоставляет доступ ко всем модулям.
+     * @param {Object} parentModulesCache Предоставляет доступ ко всем модулям.
      * @return {boolean} true - в случае успешной инициализации, иначе false.
      */
-    init: function (parentModule, allModules) {
-      parent = parentModule;
-      settings = allModules.settings;
-      textHelper = allModules.textHelper;
-
+    init: function (parentModule, parentModulesCache) {
+      modulesCache = {
+        parent: parentModule,
+        settings: parentModulesCache.settings,
+        textHelper: parentModulesCache.textHelper
+      };
+      OFFER_SETTINGS = modulesCache.settings.advert.offer;
       return true;
     },
     /**

@@ -2,94 +2,38 @@
 'use strict';
 
 window.form = (function () {
-  var PRICE_MAPPING = [0, 1000, 10000];
-
   var thisModule;
-  var parent;
-
-  var elements = {};
-  var binding;
+  var modulesCache;
+  var elementsCache = {};
+  var binding = {};
 
   /** Доступ к эелементам.
    ******************************************************************************/
 
   var initElements = function () {
     var formElement = document.querySelector('.notice__form');
-    elements.noticeFormElement = formElement;
-    elements.timeSelectElement = formElement.querySelector('#time');
-    elements.timeoutSelectElement = formElement.querySelector('#timeout');
-    elements.lodgingTypeSelectElement = formElement.querySelector('#type');
-    elements.priceInputElement = formElement.querySelector('#price');
-    elements.roomsSelectElement = formElement.querySelector('#room_number');
-    elements.guestsSelectElement = formElement.querySelector('#capacity');
-    elements.addressElement = formElement.querySelector('#address');
-    return Array.prototype.every.call(elements, function (module) {
-      return typeof elements !== 'undefined';
-    });
+    elementsCache.noticeFormElement = formElement;
+    elementsCache.timeSelectElement = formElement.querySelector('#time');
+    elementsCache.timeoutSelectElement = formElement.querySelector('#timeout');
+    elementsCache.lodgingTypeSelectElement = formElement.querySelector('#type');
+    elementsCache.priceInputElement = formElement.querySelector('#price');
+    elementsCache.roomsSelectElement = formElement.querySelector('#room_number');
+    elementsCache.guestsSelectElement = formElement.querySelector('#capacity');
+    elementsCache.addressElement = formElement.querySelector('#address');
+
+    for (var elementKey in elementsCache) {
+      if (typeof elementsCache[elementKey] === 'undefined' || elementsCache[elementKey] === null) {
+        return false;
+      }
+    }
+    return true;
   };
 
   /** Свзязывание полей формы.
    ******************************************************************************/
 
-  var bindNoticeFormElements = function () {
-    var setSelectedValue = function (targetSelect, value) {
-      var targetValue = Array.prototype.find.call(targetSelect.options, function (option) {
-        return option.value === value;
-      });
-      if (targetValue && !targetValue.selected) {
-        targetSelect.value = targetValue.value;
-      }
-    };
-
-    var setPriceInputValue = function (priceInput, value) {
-      var minPrice = PRICE_MAPPING[value];
-      priceInput.min = minPrice;
-      priceInput.placeholder = minPrice;
-
-      var currentPrice = parseInt(priceInput.value, 10);
-      if (!isNaN(currentPrice) && currentPrice < minPrice) {
-        priceInput.value = '';
-      }
-    };
-
-    elements.timeSelectElement.addEventListener('change', function (changeEvt) {
-      var newValue = changeEvt.target.value;
-      setSelectedValue(elements.timeoutSelectElement, newValue);
-    });
-    elements.timeoutSelectElement.addEventListener('change', function (changeEvt) {
-      var newValue = changeEvt.target.value;
-      setSelectedValue(elements.timeSelectElement, newValue);
-    });
-
-    elements.lodgingTypeSelectElement.addEventListener('change', function (changeEvt) {
-      var newValue = +changeEvt.target.value;
-      setPriceInputValue(elements.priceInputElement, newValue);
-    });
-
-    elements.roomsSelectElement.addEventListener('change', function (changeEvt) {
-      var newValue = changeEvt.target.value;
-      setSelectedValue(elements.guestsSelectElement, newValue);
-    });
-    elements.guestsSelectElement.addEventListener('change', function (changeEvt) {
-      var newValue = changeEvt.target.value;
-      setSelectedValue(elements.roomsSelectElement, newValue);
-    });
-
-    return {
-      updateTimeOut: function () {
-        setSelectedValue(elements.timeoutSelectElement, elements.timeSelectElement.value);
-      },
-      updatePrice: function () {
-        setPriceInputValue(elements.priceInputElement, elements.lodgingTypeSelectElement.value);
-      },
-      updateGuestsSelect: function () {
-        setSelectedValue(elements.guestsSelectElement, elements.roomsSelectElement.value);
-      }
-    };
-  };
-
   var updateBinding = function () {
-    binding.updateTimeOut();
+    binding.updateTimeout();
     binding.updatePrice();
     binding.updateGuestsSelect();
   };
@@ -126,7 +70,7 @@ window.form = (function () {
       noticeForm.reset();
       updateBinding();
 
-      thisModule.onSubmited();
+      thisModule.onSubmit();
     });
   };
 
@@ -134,7 +78,7 @@ window.form = (function () {
    ******************************************************************************/
 
   var setAddress = function (text) {
-    elements.addressElement.value = text;
+    elementsCache.addressElement.value = text;
   };
 
   var subscribeAddressChanged = function (addressElement) {
@@ -152,20 +96,53 @@ window.form = (function () {
     /**
      * Инициализирует модуль.
      * @param {Object} parentModule Родительский модуль.
+     * @param {Object} parentModulesCache Предоставляет доступ к модулям.
      * @return {boolean} true - в случае успешной инициализации, иначе false.
      */
-    init: function (parentModule) {
-      parent = parentModule;
+    init: function (parentModule, parentModulesCache) {
+      modulesCache = {
+        parent: parentModule,
+        synchronizeFields: parentModulesCache.synchronizeFields
+      };
 
       var initResult = initElements();
       if (initResult) {
-        initNoticeFormValidation(elements.noticeFormElement);
-        binding = bindNoticeFormElements();
+        initNoticeFormValidation(elementsCache.noticeFormElement);
+
+        binding.updatePrice = modulesCache.synchronizeFields(elementsCache.lodgingTypeSelectElement, elementsCache.priceInputElement,
+          ['0', '1', '2'], ['0', '1000', '10000'], function (element, value) {
+            element.min = value;
+            element.placeholder = value;
+            var currentPrice = parseInt(element.value, 10);
+            if (!isNaN(currentPrice) && currentPrice < value) {
+              element.value = '';
+            }
+          }).updateTarget;
+
+        var setSelectValueHandler = function (element, value) {
+          if (element.value !== value) {
+            element.value = value;
+          }
+        };
+
+        var roomKeyValues = ['0', '1'];
+        var guestKeyValues = ['0', '1'];
+        binding.updateGuestsSelect = modulesCache.synchronizeFields(elementsCache.roomsSelectElement, elementsCache
+          .guestsSelectElement, roomKeyValues, guestKeyValues, setSelectValueHandler).updateTarget;
+        modulesCache.synchronizeFields(elementsCache.guestsSelectElement, elementsCache
+          .roomsSelectElement, guestKeyValues, roomKeyValues, setSelectValueHandler);
+
+        var timeKeyValues = ['12', '13', '14'];
+        var timeoutKeyValues = ['12', '13', '14'];
+        binding.updateTimeout = modulesCache.synchronizeFields(elementsCache.timeSelectElement, elementsCache
+          .timeoutSelectElement, timeKeyValues, timeoutKeyValues, setSelectValueHandler).updateTarget;
+        modulesCache.synchronizeFields(elementsCache.timeoutSelectElement, elementsCache
+          .timeSelectElement, timeKeyValues, timeoutKeyValues, setSelectValueHandler);
+
         updateBinding();
       }
 
-      subscribeAddressChanged(elements.addressElement);
-
+      subscribeAddressChanged(elementsCache.addressElement);
       return initResult;
     },
     /**
@@ -173,7 +150,7 @@ window.form = (function () {
      * @return {Object} родительский модуль.
      */
     getParent: function () {
-      return parent;
+      return modulesCache.parent;
     },
     /**
      * Задает новое значение поля адреса.
