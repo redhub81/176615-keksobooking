@@ -46,7 +46,7 @@ window.showCard = (function () {
     elements.advertDialogCloseElement.addEventListener('click', advertDialogCloseElementClickHandler);
 
     advertDialogCloseElementKeydownHandler = function (keydownEvt) {
-      if (modulesCache.eventHelper.isActivatedByKeyCode(keydownEvt, modulesCache.eventHelper.keys.escape)) {
+      if (modulesCache.eventHelper.isActivatedByKeyCode(keydownEvt, modulesCache.eventHelper.keys.enter)) {
         closeAdvertDialog();
       }
     };

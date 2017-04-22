@@ -97,7 +97,7 @@ window.pin = (function () {
     thisModule.onDeactivatePin(advertId);
   }
 
-  var subscrube = function () {
+  var subscribe = function () {
     var pinKeydownHandler = null;
     var pins = elementsCache.pinMapElement.querySelectorAll('.pin:not(.pin__main)');
 
@@ -160,7 +160,7 @@ window.pin = (function () {
       var adverts = modulesCache.data.getAdverts();
       var pinFragment = renderPinsFragment(adverts);
       elementsCache.pinMapElement.insertBefore(pinFragment, elementsCache.mainPinElement);
-      subscrube();
+      subscribe();
     },
     /**
      * Активирует метку объявления на карте.

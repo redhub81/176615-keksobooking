@@ -83,10 +83,12 @@ window.main = (function () {
       if (init()) {
         subscribe();
 
+        modulesCache.data.onAdvertsLoaded = function (adverts) {
+          var defaultAdvertId = adverts[0].id;
+          modulesCache.pin.show();
+          modulesCache.pin.activatePin(defaultAdvertId);
+        };
         modulesCache.data.loadAdverts();
-        var defaultAdvertId = modulesCache.data.getAdverts()[0].id;
-        modulesCache.pin.show();
-        modulesCache.pin.activatePin(defaultAdvertId);
 
         setup();
       }
