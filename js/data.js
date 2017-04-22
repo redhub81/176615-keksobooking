@@ -131,15 +131,19 @@ window.data = (function (modules) {
   };
 
   var loadArverts = function () {
-    window.load(KEKSOBOOKING_DATA_URL, function (adverts) {
+    var loadHandler = function (adverts) {
       adverts.forEach(function (advert, index) {
         advert.id = index;
       });
       advertItems = adverts;
       thisModule.onAdvertsLoaded(adverts);
-    }, function (errorMessage) {
+    };
+
+    var errorHandler = function (errorMessage) {
       window.showError(errorMessage);
-    });
+    };
+
+    window.load(KEKSOBOOKING_DATA_URL, loadHandler, errorHandler);
   };
 
   /** Публикация интерфейса модуля.
