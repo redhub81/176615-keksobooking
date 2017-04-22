@@ -2,11 +2,13 @@
 'use strict';
 
 window.data = (function (modules) {
+  var KEKSOBOOKING_DATA_URL = 'https://intensive-javascript-server-kjgvxfepjl.now.sh/keksobooking/data';
   var NUMBER_ID_LENGTH = 2;
   var NUMBER_ID_MIN = 0;
   var NUMBER_ID_MAX = 100;
   var OFFER_SETTINGS;
 
+  var thisModule;
   var modulesCache;
   var advertItems;
 
@@ -111,7 +113,7 @@ window.data = (function (modules) {
     };
   };
 
-  var createAdverts = function () {
+  var generateAdverts = function () {
     var adverts = [];
     var advertCount = OFFER_SETTINGS.titles.length;
     var titleSubstitution = getRandomSubstitutionWithoutRepetition(advertCount, advertCount);
@@ -124,14 +126,30 @@ window.data = (function (modules) {
       var advert = createAdvert(id, title);
       adverts.push(advert);
     }
+    advertItems = adverts;
+    thisModule.onAdvertsLoaded(adverts);
+  };
 
-    return adverts;
+  var loadArverts = function () {
+    var loadHandler = function (adverts) {
+      adverts.forEach(function (advert, index) {
+        advert.id = index;
+      });
+      advertItems = adverts;
+      thisModule.onAdvertsLoaded(adverts);
+    };
+
+    var errorHandler = function (errorMessage) {
+      window.showError(errorMessage);
+    };
+
+    window.load(KEKSOBOOKING_DATA_URL, loadHandler, errorHandler);
   };
 
   /** Публикация интерфейса модуля.
    ******************************************************************************/
 
-  return {
+  thisModule = {
     /**
      * Инициализирует модуль.
      * @param {Object} parentModule Родительский модуль.
@@ -155,14 +173,21 @@ window.data = (function (modules) {
       return parent;
     },
     /**
+     * Генерирует данные объявлений.
+     */
+    generateAdverts: generateAdverts,
+    /**
      * Загружает данные объявлений.
      */
-    loadAdverts: function () {
-      advertItems = createAdverts();
-    },
+    loadAdverts: loadArverts,
+    /**
+     * Вызывается после загрузки объявлений.
+     * @param {Array.<Object>} arverts Данные загруженных объявлений.
+     */
+    onAdvertsLoaded: function (arverts) {},
     /**
      * Возвращает данные загруженных объявлений.
-     * @return {Array} Данные загруженных объявлений.
+     * @return {Array.<Object>} Данные загруженных объявлений.
      */
     getAdverts: function () {
       return advertItems;
@@ -178,4 +203,5 @@ window.data = (function (modules) {
       });
     }
   };
+  return thisModule;
 })();

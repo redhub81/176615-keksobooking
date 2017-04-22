@@ -501,6 +501,7 @@ select option:hover {
 }
 
 .dialog {
+    display: none;
     position: absolute;
     top: 70px;
     left: 20px;
@@ -615,6 +616,47 @@ select option:hover {
 
 .lodge__photos img {
   margin: 0 1px;
+}
+
+.error {
+  display: none;
+  position: absolute;
+  top: 100px;
+  left: 400px;
+
+  width: 400px;
+  height: 200px;
+}
+
+.error__title {
+  position: relative;
+}
+
+.error__header {
+  display: inline-block;
+  margin: 0;
+  padding: 2px 8px;
+  background-color: white;
+  border: 2px solid transparent;
+  border-radius: 5px 5px 0 0;
+  color: red;
+}
+
+.error__close {
+  position: absolute;
+
+  right: 0;
+  bottom: 0;
+}
+
+.error__content {
+  background-color: white;
+
+  padding: 8px;
+  min-height: 75px;
+
+  border-radius: 0 4px 4px 4px;
+  border: 2px solid transparent;
 }
 
 .pin {
