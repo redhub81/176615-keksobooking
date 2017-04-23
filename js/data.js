@@ -87,7 +87,6 @@ window.data = (function (modules) {
   };
 
   var createOffer = function (title, location) {
-
     return {
       title: title,
       address: modulesCache.textHelper.format(OFFER_SETTINGS.formats.address, [location.x, location.y]),
@@ -184,7 +183,7 @@ window.data = (function (modules) {
      * Вызывается после загрузки объявлений.
      * @param {Array.<Object>} arverts Данные загруженных объявлений.
      */
-    onAdvertsLoaded: function (arverts) {},
+    onAdvertsLoaded: function () {},
     /**
      * Возвращает данные загруженных объявлений.
      * @return {Array.<Object>} Данные загруженных объявлений.

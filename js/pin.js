@@ -67,11 +67,26 @@ window.pin = (function () {
   /** Управление метками на карте.
    ******************************************************************************/
 
-  function isActive(pin) {
-    return activePinElement !== null && activePinElement.id === pin.id;
-  }
+  var isPinElement = function (element) {
+    return typeof element.classList !== 'undefined'
+      && element.classList.contains('pin') && !element.classList.contains('pin__main');
+  };
 
-  function activatePin(pin) {
+  var clearPins = function () {
+    var elements = elementsCache.pinMapElement.children;
+    var pins = Array.prototype.filter.call(elements, isPinElement);
+
+    activePinElement = null;
+    pins.forEach(function (pin) {
+      elementsCache.pinMapElement.removeChild(pin);
+    });
+  };
+
+  var isActive = function (pin) {
+    return activePinElement !== null && activePinElement.id === pin.id;
+  };
+
+  var activatePin = function (pin) {
     if (pin === null || isActive(pin)) {
       return;
     }
@@ -83,46 +98,51 @@ window.pin = (function () {
 
     var advertId = getAdvertId(pin.id);
     thisModule.onActivatePin(advertId);
-  }
+  };
 
-  function deactivatePin(pin) {
+  var deactivatePin = function (pin) {
     if (pin === null) {
       return;
     }
-
     var advertId = getAdvertId(pin.id);
     pin.classList.remove('pin--active');
     activePinElement = null;
 
     thisModule.onDeactivatePin(advertId);
-  }
+  };
 
   var subscribe = function () {
     var pinKeydownHandler = null;
-    var pins = elementsCache.pinMapElement.querySelectorAll('.pin:not(.pin__main)');
 
-    for (var index = 0; index < pins.length; index++) {
-      var pin = pins[index];
+    var getPinElement = function (elements) {
+      var targetPin = Array.prototype.find.call(elements, isPinElement);
+      return typeof targetPin !== 'undefined' ? targetPin : null;
+    };
 
-      pin.addEventListener('click', function (evt) {
-        var pinTarget = evt.currentTarget;
-        activatePin(pinTarget);
-      });
+    elementsCache.pinMapElement.addEventListener('click', function (clickEvt) {
+      var pinTarget = getPinElement(clickEvt.path);
+      activatePin(pinTarget);
+    });
 
-      pin.addEventListener('focus', function (focusEvt) {
+    elementsCache.pinMapElement.addEventListener('focus', function (focusEvt) {
+      var pinTarget = getPinElement(focusEvt.path);
+      if (pinTarget !== null && pinKeydownHandler === null) {
         pinKeydownHandler = function (keydownEvt) {
           if (modulesCache.eventHelper.isActivatedByKeyCode(keydownEvt, modulesCache.eventHelper.keys.enter)) {
-            var pinTarget = keydownEvt.currentTarget;
-            activatePin(pinTarget);
+            activatePin(keydownEvt.currentTarget);
           }
         };
-        focusEvt.currentTarget.addEventListener('keydown', pinKeydownHandler);
-      });
-      pin.addEventListener('blur', function (blurEvt) {
-        blurEvt.currentTarget.removeEventListener('keydown', pinKeydownHandler);
+        pinTarget.addEventListener('keydown', pinKeydownHandler);
+      }
+    }, true);
+
+    elementsCache.pinMapElement.addEventListener('blur', function (blurEvt) {
+      var pinTarget = getPinElement(blurEvt.path);
+      if (pinTarget !== null && pinKeydownHandler !== null) {
+        pinTarget.removeEventListener('keydown', pinKeydownHandler);
         pinKeydownHandler = null;
-      });
-    }
+      }
+    }, true);
   };
 
   /** Публикация интерфейса модуля.
@@ -144,6 +164,9 @@ window.pin = (function () {
         data: parentModulesCache.data
       };
       elementsCache = parentElementsCache;
+
+      subscribe();
+
       return true;
     },
     /**
@@ -155,12 +178,21 @@ window.pin = (function () {
     },
     /**
      * Отображает метки объявлений на карте.
+     * @param {Array.<Object>} adverts Данные объявлений.
      */
-    show: function () {
-      var adverts = modulesCache.data.getAdverts();
+    show: function (adverts) {
+      clearPins();
       var pinFragment = renderPinsFragment(adverts);
       elementsCache.pinMapElement.insertBefore(pinFragment, elementsCache.mainPinElement);
-      subscribe();
+    },
+    /**
+     * Возвращает идентификатор активного объявления.
+     * @return {number} Идентификатор активного объявления.
+     */
+    getActiveAdvertId: function () {
+      return activePinElement !== null
+        ? getAdvertId(activePinElement.id)
+        : -1;
     },
     /**
      * Активирует метку объявления на карте.
