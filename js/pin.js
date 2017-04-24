@@ -114,18 +114,25 @@ window.pin = (function () {
   var subscribe = function () {
     var pinKeydownHandler = null;
 
-    var getPinElement = function (elements) {
-      var targetPin = Array.prototype.find.call(elements, isPinElement);
-      return typeof targetPin !== 'undefined' ? targetPin : null;
+    var getPinElement = function (targetElement) {
+      for (; targetElement !== null; targetElement = targetElement.parentElement) {
+        if (isPinElement(targetElement)) {
+          break;
+        }
+      }
+      return targetElement;
     };
 
     elementsCache.pinMapElement.addEventListener('click', function (clickEvt) {
-      var pinTarget = getPinElement(clickEvt.path);
-      activatePin(pinTarget);
+      var pinTarget = getPinElement(clickEvt.target);
+      if (pinTarget !== null) {
+        activatePin(pinTarget);
+      }
     });
 
     elementsCache.pinMapElement.addEventListener('focus', function (focusEvt) {
-      var pinTarget = getPinElement(focusEvt.path);
+      var pinTarget = getPinElement(focusEvt.target);
+
       if (pinTarget !== null && pinKeydownHandler === null) {
         pinKeydownHandler = function (keydownEvt) {
           if (modulesCache.eventHelper.isActivatedByKeyCode(keydownEvt, modulesCache.eventHelper.keys.enter)) {
@@ -137,7 +144,8 @@ window.pin = (function () {
     }, true);
 
     elementsCache.pinMapElement.addEventListener('blur', function (blurEvt) {
-      var pinTarget = getPinElement(blurEvt.path);
+      var pinTarget = getPinElement(blurEvt.target);
+
       if (pinTarget !== null && pinKeydownHandler !== null) {
         pinTarget.removeEventListener('keydown', pinKeydownHandler);
         pinKeydownHandler = null;
