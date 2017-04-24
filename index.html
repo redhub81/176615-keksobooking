@@ -22,13 +22,13 @@
           <option value="bungalo">Сарай</option>
         </select></label>
         <label><select name="housing_price" id="housing_price" class="tokyo__filter">
-          <option value="middle" selected>10000 - 50000&#x20bd;</option>
-          <option value="low">до 10000&#x20bd;</option>
+          <option value="middle">10000 - 50000&#x20bd;</option>
+          <option value="low" selected>до 10000&#x20bd;</option>
           <option value="high">от 50000&#x20bd;</option>
         </select></label>
         <label><select name="housing_room-number" id="housing_room-number" class="tokyo__filter">
-          <option value="any" selected>Любое число комнат</option>
-          <option value="1">Одна комната</option>
+          <option value="any">Любое число комнат</option>
+          <option value="1" selected>Одна комната</option>
           <option value="2">Две комнаты</option>
           <option value="3">Три комнаты</option>
         </select></label>
@@ -166,7 +166,7 @@
         <div class="form__panel">
           <div class="form__element  form__element--wide">
             <label for="address">Адрес</label>
-            <input id="address" pattern="x: \d{1,3}, y: \d{1,3}" placeholder="x: 000, y: 000" type="text">
+            <input id="address" pattern="x: \d{1,3}, y: \d{1,3}" placeholder="x: 000, y: 000" type="text" required>
           </div>
           <div class="form__row">
             <div class="form__element">
