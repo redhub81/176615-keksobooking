@@ -115,10 +115,11 @@ window.pin = (function () {
     var pinKeydownHandler = null;
 
     var getPinElement = function (targetElement) {
-      for (; targetElement !== null; targetElement = targetElement.parentElement) {
+      while (targetElement !== null) {
         if (isPinElement(targetElement)) {
           break;
         }
+        targetElement = targetElement.parentElement;
       }
       return targetElement;
     };
