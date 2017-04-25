@@ -47,29 +47,64 @@ window.main = (function () {
     return modulesCache.textHelper.format(modulesCache.settings.noticeForm.address.format, [point.x, point.y]);
   };
 
-  var subscribe = function () {
+  var subscribeMap = function () {
     modulesCache.map.onMainPinMove = function (point) {
       var address = getAddressByLocation(point);
       modulesCache.form.setAddress(address);
     };
+  };
+
+  var subscribeForm = function () {
     modulesCache.form.onAddressChanged = function (addressInfo) {
       modulesCache.map.parseMainPinPosition(addressInfo.newAddress);
       addressInfo.oldAddress = addressInfo.newAddress;
       addressInfo.newAddress = getAddressByLocation(modulesCache.map.getMainPinPosition());
     };
-
     modulesCache.form.onSubmit = function () {
       modulesCache.map.parseMainPinPosition(null);
-      setup();
+      setupForm();
+    };
+  };
+
+  var subscribeFilter = function () {
+    window.listenFilters.onSelectedTypeKindChanged = function (newTypeKind) {
+      window.filterAdverts.setTypeKind(newTypeKind);
+      window.filterAdverts.updateAdverts();
+    };
+    window.listenFilters.onSelectedPriceRangeChanged = function (newPriceRange) {
+      window.filterAdverts.setPriceRange(newPriceRange);
+      window.filterAdverts.updateAdverts();
+    };
+    window.listenFilters.onSelectedRoomCountChanged = function (newRoomCount) {
+      window.filterAdverts.setRoomCount(newRoomCount);
+      window.filterAdverts.updateAdverts();
+    };
+    window.listenFilters.onSelectedGuestCountChanged = function (newGuestCount) {
+      window.filterAdverts.setGuestCount(newGuestCount);
+      window.filterAdverts.updateAdverts();
+    };
+    window.listenFilters.onFeaturesSelectionChanged = function (feature, status) {
+      window.filterAdverts.setFeatureStatus(feature, status);
+      window.filterAdverts.updateAdverts();
     };
   };
 
   /** Настройка модулей.
    ******************************************************************************/
 
-  var setup = function () {
+  var setupForm = function () {
     var address = getAddressByLocation(modulesCache.map.getMainPinPosition());
     modulesCache.form.setAddress(address);
+  };
+
+  var setupFilter = function () {
+    window.filterAdverts.setTypeKind(window.listenFilters.getSelectedTypeKind());
+    window.filterAdverts.setPriceRange(window.listenFilters.getSelectedPriceRange());
+    window.filterAdverts.setRoomCount(window.listenFilters.getSelectedRoomsCount());
+    window.filterAdverts.setGuestCount(window.listenFilters.getSelectedGuestsCount());
+    window.listenFilters.getSelectedFeatures().forEach(function (feature) {
+      window.filterAdverts.setSelectedFeatures(feature, true);
+    });
   };
 
   /** Публикация интерфейса модуля.
@@ -81,16 +116,30 @@ window.main = (function () {
      */
     start: function () {
       if (init()) {
-        subscribe();
+        setupForm();
+        setupFilter();
 
-        modulesCache.data.onAdvertsLoaded = function (adverts) {
-          var defaultAdvertId = adverts[0].id;
-          modulesCache.pin.show();
-          modulesCache.pin.activatePin(defaultAdvertId);
+        subscribeMap();
+        subscribeForm();
+        subscribeFilter();
+
+        window.filterAdverts.onAdvertsFiltered = function (adverts) {
+          var activeAdvertId = modulesCache.pin.getActiveAdvertId();
+          var hasActiveAdvert = (activeAdvertId >= 0) && adverts.some(function (advert) {
+            return advert.id === activeAdvertId;
+          });
+          if (adverts.length > 0 && !hasActiveAdvert) {
+            activeAdvertId = adverts[0].id;
+          }
+          modulesCache.card.hide();
+          modulesCache.pin.show(adverts);
+          modulesCache.pin.activatePin(activeAdvertId);
         };
-        modulesCache.data.loadAdverts();
+        modulesCache.data.onAdvertsLoaded = function () {
+          window.filterAdverts.updateAdverts();
+        };
 
-        setup();
+        modulesCache.data.loadAdverts();
       }
     }
   };

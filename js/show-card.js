@@ -70,9 +70,10 @@ window.showCard = (function () {
     };
     elements = elementsCache;
 
-    closeAdvertDialog();
+    unsubscribeDialogCloseEvents();
     modulesCache.card.render(advert);
     subscribeDialogCloseEvents();
+
     modulesCache.card.show();
     currentAdvertId = advert.id;
 
@@ -81,8 +82,7 @@ window.showCard = (function () {
        * Вызывается после закрытия диалоговой панели объявления.
        * @param {int} advertId Идентификатор объявления.
        */
-      onClose: function (advertId) {
-      }
+      onClose: function (advertId) {}
     };
     return showResult;
   };
