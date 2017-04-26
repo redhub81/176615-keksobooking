@@ -3,12 +3,19 @@
 
 window.listenFilters = (function () {
   var thisModule;
+
+  /** Инициализация доступа к визуальным элементам.
+   ******************************************************************************/
+
   var filtersFormElement = document.querySelector('.tokyo__filters');
   var housingTypeSelectElement = filtersFormElement.querySelector('#housing_type');
   var housingPriceSelectElement = filtersFormElement.querySelector('#housing_price');
   var housingRoomNumberSelectElement = filtersFormElement.querySelector('#housing_room-number');
   var housingGuestsNumberSelectElement = filtersFormElement.querySelector('#housing_guests-number');
   var housingFeaturesFieldsetElement = filtersFormElement.querySelector('#housing_features');
+
+  /** Конвертировыание кодов в значения параметров фильтра объявлений.
+   ******************************************************************************/
 
   var getItemsCount = function (countCode) {
     var count = parseInt(countCode, 10);
@@ -37,6 +44,9 @@ window.listenFilters = (function () {
     return priceRange;
   };
 
+  /** Подписка на события.
+   ******************************************************************************/
+
   housingTypeSelectElement.addEventListener('change', function (changeEvt) {
     thisModule.onSelectedTypeKindChanged(changeEvt.target.value);
   });
@@ -60,6 +70,9 @@ window.listenFilters = (function () {
       thisModule.onFeaturesSelectionChanged(checkboxElement.value, checkboxElement.checked);
     }
   });
+
+  /** Публикация интерфейса модуля.
+   ******************************************************************************/
 
   thisModule = {
     /**

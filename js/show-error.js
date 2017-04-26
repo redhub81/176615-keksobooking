@@ -2,17 +2,34 @@
 'use strict';
 
 window.showError = (function () {
-  var errorDialogElement = document.getElementById('error-dialog');
-  var errorDialogCloseElement = errorDialogElement.querySelector('.error__close');
-  var errorDialogContent = errorDialogElement.querySelector('.error__content');
-
   var errorDialogCloseElementClickHandler;
   var errorDialogCloseElementKeydownHandler;
   var errorDialogElementKeydownHandler;
 
-  var renderErrorFragment = function (message) {
-    errorDialogContent.textContent = message;
+  /** Инициализация доступа к визуальным элементам.
+   ******************************************************************************/
+
+  var errorDialogElement = document.getElementById('error-dialog');
+  var errorDialogCloseElement = errorDialogElement.querySelector('.error__close');
+  var errorDialogContentElement = errorDialogElement.querySelector('.error__content');
+
+  /** Отрисовка сообщения об ошибке.
+   ******************************************************************************/
+
+  var renderError = function (message) {
+    errorDialogContentElement.textContent = message;
   };
+
+  var showError = function () {
+    errorDialogElement.style.display = 'block';
+  };
+
+  var hideError = function () {
+    errorDialogElement.style.display = 'none';
+  };
+
+  /** Подписка на события.
+   ******************************************************************************/
 
   var unsubscribeEvents = function () {
     if (errorDialogCloseElementClickHandler) {
@@ -28,7 +45,7 @@ window.showError = (function () {
 
   var closeErrorDialog = function () {
     unsubscribeEvents();
-    errorDialogElement.style.display = 'none';
+    hideError();
   };
 
   var subscribeEvents = function () {
@@ -52,9 +69,12 @@ window.showError = (function () {
     document.addEventListener('keydown', errorDialogElementKeydownHandler);
   };
 
+  /** Публикация интерфейса модуля.
+   ******************************************************************************/
+
   return function (errorMessage) {
-    renderErrorFragment(errorMessage);
+    renderError(errorMessage);
     subscribeEvents();
-    errorDialogElement.style.display = 'block';
+    showError();
   };
 })();

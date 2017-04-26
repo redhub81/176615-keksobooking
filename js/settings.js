@@ -1,7 +1,7 @@
 // settings.js
 'use strict';
 
-window.defaultSettings = (function () {
+window.settings = (function () {
   return {
     advert: {
       offer: {
@@ -94,9 +94,9 @@ window.defaultSettings = (function () {
       pinPanel: {
         boundingBox: {
           x0: 300,
-          x1: 900,
+          x1: 1150,
           y0: 175,
-          y1: 500
+          y1: 630
         }
       }
     }

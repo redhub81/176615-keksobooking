@@ -3,12 +3,15 @@
 
 window.pin = (function () {
   var thisModule;
-  var modulesCache;
-  var elementsCache;
-
   var activePinElement = null;
 
-  /** Вспомогательные методы.
+  /** Инициализация доступа к визуальным элементам.
+   ******************************************************************************/
+
+  var pinMapElement = document.querySelector('.tokyo__pin-map');
+  var mainPinElement = pinMapElement.querySelector('.pin__main');
+
+  /** Преобразование идентификаторов.
    ******************************************************************************/
 
   var createPinId = function (advertId) {
@@ -27,16 +30,16 @@ window.pin = (function () {
     var pinElement = document.createElement('div');
     pinElement.id = createPinId(advert.id);
     pinElement.classList.add('pin');
-    var xPosition = advert.location.x - Math.round(0.5 * modulesCache.settings.otherPin.width);
-    var yPosition = advert.location.y - modulesCache.settings.otherPin.height;
+    var xPosition = advert.location.x - Math.round(0.5 * window.settings.otherPin.width);
+    var yPosition = advert.location.y - window.settings.otherPin.height;
     pinElement.style.left = xPosition + 'px';
     pinElement.style.top = yPosition + 'px';
 
     var childElement = document.createElement('img');
     childElement.src = advert.author.avatar;
     childElement.classList.add('rounded');
-    childElement.width = modulesCache.settings.otherPin.img.width;
-    childElement.height = modulesCache.settings.otherPin.img.height;
+    childElement.width = window.settings.otherPin.img.width;
+    childElement.height = window.settings.otherPin.img.height;
 
     pinElement.appendChild(childElement);
     pinElement.tabIndex = '0';
@@ -50,7 +53,6 @@ window.pin = (function () {
       var pinElement = createPinElement(adverts[index]);
       pinElements.push(pinElement);
     }
-
     return pinElements;
   };
 
@@ -60,7 +62,6 @@ window.pin = (function () {
     for (var index = 0; index < pins.length; index++) {
       pinsFragment.appendChild(pins[index]);
     }
-
     return pinsFragment;
   };
 
@@ -73,12 +74,12 @@ window.pin = (function () {
   };
 
   var clearPins = function () {
-    var elements = elementsCache.pinMapElement.children;
+    var elements = pinMapElement.children;
     var pins = Array.prototype.filter.call(elements, isPinElement);
 
     activePinElement = null;
     pins.forEach(function (pin) {
-      elementsCache.pinMapElement.removeChild(pin);
+      pinMapElement.removeChild(pin);
     });
   };
 
@@ -90,10 +91,9 @@ window.pin = (function () {
     if (pin === null || isActive(pin)) {
       return;
     }
-
     deactivatePin(activePinElement);
-    activePinElement = pin;
     pin.classList.add('pin--active');
+    activePinElement = pin;
     pin.focus();
 
     var advertId = getAdvertId(pin.id);
@@ -104,87 +104,59 @@ window.pin = (function () {
     if (pin === null) {
       return;
     }
-    var advertId = getAdvertId(pin.id);
     pin.classList.remove('pin--active');
     activePinElement = null;
 
+    var advertId = getAdvertId(pin.id);
     thisModule.onDeactivatePin(advertId);
   };
 
-  var subscribe = function () {
-    var pinKeydownHandler = null;
+  /** Подписка на события.
+   ******************************************************************************/
 
-    var getPinElement = function (targetElement) {
-      while (targetElement !== null) {
-        if (isPinElement(targetElement)) {
-          break;
-        }
-        targetElement = targetElement.parentElement;
+  var pinKeydownHandler = null;
+
+  var getPinElement = function (targetElement) {
+    while (targetElement !== null) {
+      if (isPinElement(targetElement)) {
+        break;
       }
-      return targetElement;
-    };
-
-    elementsCache.pinMapElement.addEventListener('click', function (clickEvt) {
-      var pinTarget = getPinElement(clickEvt.target);
-      if (pinTarget !== null) {
-        activatePin(pinTarget);
-      }
-    });
-
-    elementsCache.pinMapElement.addEventListener('focus', function (focusEvt) {
-      var pinTarget = getPinElement(focusEvt.target);
-
-      if (pinTarget !== null && pinKeydownHandler === null) {
-        pinKeydownHandler = function (keydownEvt) {
-          if (modulesCache.eventHelper.isActivatedByKeyCode(keydownEvt, modulesCache.eventHelper.keys.enter)) {
-            activatePin(keydownEvt.currentTarget);
-          }
-        };
-        pinTarget.addEventListener('keydown', pinKeydownHandler);
-      }
-    }, true);
-
-    elementsCache.pinMapElement.addEventListener('blur', function (blurEvt) {
-      var pinTarget = getPinElement(blurEvt.target);
-
-      if (pinTarget !== null && pinKeydownHandler !== null) {
-        pinTarget.removeEventListener('keydown', pinKeydownHandler);
-        pinKeydownHandler = null;
-      }
-    }, true);
+      targetElement = targetElement.parentElement;
+    }
+    return targetElement;
   };
+
+  pinMapElement.addEventListener('click', function (clickEvt) {
+    var pinTarget = getPinElement(clickEvt.target);
+    if (pinTarget !== null) {
+      activatePin(pinTarget);
+    }
+  });
+
+  pinMapElement.addEventListener('focus', function (focusEvt) {
+    var pinTarget = getPinElement(focusEvt.target);
+    if (pinTarget !== null && pinKeydownHandler === null) {
+      pinKeydownHandler = function (keydownEvt) {
+        if (window.eventHelper.isActivatedByKeyCode(keydownEvt, window.eventHelper.keys.enter)) {
+          activatePin(keydownEvt.currentTarget);
+        }
+      };
+      pinTarget.addEventListener('keydown', pinKeydownHandler);
+    }
+  }, true);
+
+  pinMapElement.addEventListener('blur', function (blurEvt) {
+    var pinTarget = getPinElement(blurEvt.target);
+    if (pinTarget !== null && pinKeydownHandler !== null) {
+      pinTarget.removeEventListener('keydown', pinKeydownHandler);
+      pinKeydownHandler = null;
+    }
+  }, true);
 
   /** Публикация интерфейса модуля.
    ******************************************************************************/
 
   thisModule = {
-    /**
-     * Инициализирует модуль.
-     * @param {Object} parentModule Родительский модуль.
-     * @param {Object} parentModulesCache Предоставляет доступ к модулям.
-     * @param {Object} parentElementsCache Предоставляет дотуп к элементам.
-     * @return {boolean} true - в случае успешной инициализации, иначе false.
-     */
-    init: function (parentModule, parentModulesCache, parentElementsCache) {
-      modulesCache = {
-        parent: parentModule,
-        settings: parentModulesCache.settings,
-        eventHelper: parentModulesCache.eventHelper,
-        data: parentModulesCache.data
-      };
-      elementsCache = parentElementsCache;
-
-      subscribe();
-
-      return true;
-    },
-    /**
-     * Возвращает родительский модуль.
-     * @return {Object} родительский модуль.
-     */
-    getParent: function () {
-      return modulesCache.parent;
-    },
     /**
      * Отображает метки объявлений на карте.
      * @param {Array.<Object>} adverts Данные объявлений.
@@ -192,7 +164,7 @@ window.pin = (function () {
     show: function (adverts) {
       clearPins();
       var pinFragment = renderPinsFragment(adverts);
-      elementsCache.pinMapElement.insertBefore(pinFragment, elementsCache.mainPinElement);
+      pinMapElement.insertBefore(pinFragment, mainPinElement);
     },
     /**
      * Возвращает идентификатор активного объявления.
@@ -212,7 +184,7 @@ window.pin = (function () {
         return;
       }
       var pinId = createPinId(advertId);
-      var pin = elementsCache.pinMapElement.querySelector('#' + pinId);
+      var pin = pinMapElement.querySelector('#' + pinId);
       activatePin(pin);
     },
     /**
@@ -229,7 +201,7 @@ window.pin = (function () {
         return;
       }
       var pinId = createPinId(advertId);
-      var pin = elementsCache.pinMapElement.querySelector('#' + pinId);
+      var pin = pinMapElement.querySelector('#' + pinId);
       deactivatePin(pin);
     },
     /**
