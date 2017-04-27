@@ -2,42 +2,21 @@
 'use strict';
 
 window.map = (function () {
-  var MAIN_PIN_OFFSET;
-  var PIN_PANEL_X_RANGE;
-  var PIN_PANEL_Y_RANGE;
+  var BOUNDING_BOX = window.settings.map.pinPanel.boundingBox;
+  var PIN_PANEL_X_RANGE = {min: BOUNDING_BOX.x0, max: BOUNDING_BOX.x1};
+  var PIN_PANEL_Y_RANGE = {min: BOUNDING_BOX.y0, max: BOUNDING_BOX.y1};
+  var MAIN_PIN_OFFSET = {x: Math.round(0.5 * window.settings.mainPin.width), y: window.settings.mainPin.height};
 
   var thisModule;
-  var modulesCache;
-  var elementsCache = {};
 
-  /** Инициализация элементов.
+  /** Инициализация доступа к визуальным элементам.
    ******************************************************************************/
 
-  var initElements = function () {
-    elementsCache.advertDialogElement = document.querySelector('.dialog');
-    elementsCache.advertDialogCloseElement = elementsCache.advertDialogElement.querySelector('.dialog__close');
-    elementsCache.lodgeTemplate = document.querySelector('#lodge-template').content;
-    elementsCache.advertDialogTitleImage = elementsCache.advertDialogElement.querySelector('.dialog__title img');
-    elementsCache.pinMapElement = document.querySelector('.tokyo__pin-map');
-    elementsCache.mainPinElement = elementsCache.pinMapElement.querySelector('.pin__main');
+  var pinMapElement = document.querySelector('.tokyo__pin-map');
+  var mainPinElement = pinMapElement.querySelector('.pin__main');
 
-    for (var elementKey in elementsCache) {
-      if (typeof elementsCache[elementKey] === 'undefined' || elementsCache[elementKey] === null) {
-        return false;
-      }
-    }
-    return true;
-  };
-
-  var subscribe = function () {
-    modulesCache.pin.onActivatePin = function (advertId) {
-      var advert = modulesCache.data.getAdvertById(advertId);
-      var showResult = modulesCache.showCard(advert, modulesCache.card, modulesCache.eventHelper, elementsCache);
-      showResult.onClose = function (closeAdvertId) {
-        modulesCache.pin.deactivatePin(closeAdvertId);
-      };
-    };
-  };
+  /** Расчет и преобразование координат.
+   ******************************************************************************/
 
   var isInRange = function (position, range) {
     var fixedPosition = Math.round(position);
@@ -55,28 +34,6 @@ window.map = (function () {
     };
   };
 
-  var getElementPoint = function (element) {
-    return {
-      x: element.offsetLeft,
-      y: element.offsetTop
-    };
-  };
-
-  var moveElement = function (element, point) {
-    var changePosition = function (oldPosition, newPosition, callBackHandler) {
-      if (newPosition !== oldPosition) {
-        callBackHandler(newPosition !== null ? newPosition + 'px' : null);
-      }
-    };
-    var currentPoint = getElementPoint(element);
-    changePosition(currentPoint.x, point.x, function (targetPosition) {
-      element.style.left = targetPosition;
-    });
-    changePosition(currentPoint.y, point.y, function (targetPosition) {
-      element.style.top = targetPosition;
-    });
-  };
-
   var getMainPinTargetPoint = function (originPoint) {
     return {
       x: originPoint.x - MAIN_PIN_OFFSET.x,
@@ -92,16 +49,38 @@ window.map = (function () {
   };
 
   var parsePoint = function (text) {
-    var xMatch = text.match(modulesCache.settings.noticeForm.address.parseXPattern);
-    var yMatch = text.match(modulesCache.settings.noticeForm.address.parseYPattern);
+    var xMatch = text.match(window.settings.noticeForm.address.parseXPattern);
+    var yMatch = text.match(window.settings.noticeForm.address.parseYPattern);
     return {
       x: xMatch !== null ? xMatch[1] : null,
       y: yMatch !== null ? yMatch[1] : null
     };
   };
 
-  /** Перетаскивание метки текущего заполняемого объявления.
+  /** Перетаскивание метки заполняемого пользователем объявления.
    ******************************************************************************/
+
+  var getElementPoint = function (element) {
+    return {
+      x: element.offsetLeft,
+      y: element.offsetTop
+    };
+  };
+
+  var moveElement = function (element, point) {
+    var currentPoint = getElementPoint(element);
+    var changePosition = function (oldPosition, newPosition, callBackHandler) {
+      if (newPosition !== oldPosition) {
+        callBackHandler(newPosition !== null ? newPosition + 'px' : null);
+      }
+    };
+    changePosition(currentPoint.x, point.x, function (targetPosition) {
+      element.style.left = targetPosition;
+    });
+    changePosition(currentPoint.y, point.y, function (targetPosition) {
+      element.style.top = targetPosition;
+    });
+  };
 
   var doDragByOrigin = function (element, originOffset, rectangle) {
     var result;
@@ -110,8 +89,8 @@ window.map = (function () {
 
     element.addEventListener('mousedown', function (mousedownEvt) {
       mousedownEvt.preventDefault();
-      var startPoint = {x: mousedownEvt.clientX, y: mousedownEvt.clientY};
 
+      var startPoint = {x: mousedownEvt.clientX, y: mousedownEvt.clientY};
       var mouseMoveHandle = function (moveEvt) {
         moveEvt.preventDefault();
         var getPosition = function (shift, position, offset, range) {
@@ -152,59 +131,31 @@ window.map = (function () {
     return result;
   };
 
+  /** Подписка на события.
+   ******************************************************************************/
+
+  window.pin.onActivatePin = function (advertId) {
+    var advert = window.data.getAdvertById(advertId);
+    window.showCard(advert).onClose = function (closeAdvertId) {
+      window.pin.deactivatePin(closeAdvertId);
+    };
+  };
+
+  var doDragByOriginResult = doDragByOrigin(mainPinElement, MAIN_PIN_OFFSET, BOUNDING_BOX);
+  doDragByOriginResult.onDrag = function (originPoint) {
+    thisModule.onMainPinMove(originPoint);
+  };
+
   /** Публикация интерфейса модуля.
    ******************************************************************************/
 
   thisModule = {
     /**
-     * Инициализирует модуль.
-     * @param {Object} parentModule Родительский модуль.
-     * @param {Object} parentModulesChache Предоставляет доступ к модулям.
-     * @return {boolean} true - в случае успешной инициализации, иначе false.
-     */
-    init: function (parentModule, parentModulesChache) {
-      modulesCache = {
-        parent: parentModule,
-        settings: parentModulesChache.settings,
-        eventHelper: parentModulesChache.eventHelper,
-        data: parentModulesChache.data,
-        pin: parentModulesChache.pin,
-        card: parentModulesChache.card,
-        showCard: parentModulesChache.showCard
-      };
-
-      var initResult = initElements();
-      if (initResult) {
-        initResult &= modulesCache.pin.init(this, parentModulesChache, elementsCache);
-        initResult &= modulesCache.card.init(this, parentModulesChache, elementsCache);
-      }
-      if (initResult) {
-        var BOUNDING_BOX = modulesCache.settings.map.pinPanel.boundingBox;
-        PIN_PANEL_X_RANGE = {min: BOUNDING_BOX.x0, max: BOUNDING_BOX.x1};
-        PIN_PANEL_Y_RANGE = {min: BOUNDING_BOX.y0, max: BOUNDING_BOX.y1};
-        MAIN_PIN_OFFSET = {x: Math.round(0.5 * modulesCache.settings.mainPin.width), y: modulesCache.settings.mainPin.height};
-
-        var doDragByOriginResult = doDragByOrigin(elementsCache.mainPinElement, MAIN_PIN_OFFSET, BOUNDING_BOX);
-        doDragByOriginResult.onDrag = function (originPoint) {
-          thisModule.onMainPinMove(originPoint);
-        };
-        subscribe();
-      }
-      return initResult;
-    },
-    /**
-     * Возвращает родительский модуль.
-     * @return {Object} родительский модуль.
-     */
-    getParent: function () {
-      return modulesCache.parent;
-    },
-    /**
      * Возвращает позицию метки текущего заполняемого объявления.
      * @return {Object} Точка, соответствующая позиции метки.
      */
     getMainPinPosition: function () {
-      var mainPinPoint = getElementPoint(elementsCache.mainPinElement);
+      var mainPinPoint = getElementPoint(mainPinElement);
       return getMainPinOriginPoint(mainPinPoint);
     },
     /**
@@ -212,8 +163,8 @@ window.map = (function () {
      * @param {string} text Текстовое представление позиции метки.
      */
     parseMainPinPosition: function (text) {
-      if (text === null) {
-        moveElement(elementsCache.mainPinElement, {x: null, y: null});
+      if (text === null || text === '') {
+        moveElement(mainPinElement, {x: null, y: null});
         return;
       }
       var rawPoint = parsePoint(text);
@@ -221,7 +172,7 @@ window.map = (function () {
       if (!isNaN(parsedPoint.x) && !isNaN(parsedPoint.y)) {
         var originPoint = coerceToRectangle(parsedPoint);
         var targetPoint = getMainPinTargetPoint(originPoint);
-        moveElement(elementsCache.mainPinElement, targetPoint);
+        moveElement(mainPinElement, targetPoint);
       }
     },
     /**

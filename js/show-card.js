@@ -3,24 +3,26 @@
 
 window.showCard = (function () {
   var showResult;
-  var modulesCache;
-  var elements;
-
   var currentAdvertId = -1;
   var advertDialogCloseElementClickHandler = null;
   var advertDialogCloseElementKeydownHandler = null;
   var advertDialogElementKeydownHandler = null;
+
+  /** Инициализация доступа к визуальным элементам.
+   ******************************************************************************/
+
+  var advertDialogCloseElement = document.querySelector('.dialog .dialog__close');
 
   /** Управление карточкой объявления.
    ******************************************************************************/
 
   var unsubscribeDialogCloseEvents = function () {
     if (advertDialogCloseElementClickHandler) {
-      elements.advertDialogCloseElement.removeEventListener('click', advertDialogCloseElementClickHandler);
+      advertDialogCloseElement.removeEventListener('click', advertDialogCloseElementClickHandler);
       advertDialogCloseElementClickHandler = null;
     }
     if (advertDialogCloseElementKeydownHandler) {
-      elements.advertDialogCloseElement.removeEventListener('keydown', advertDialogCloseElementKeydownHandler);
+      advertDialogCloseElement.removeEventListener('keydown', advertDialogCloseElementKeydownHandler);
       advertDialogCloseElementKeydownHandler = null;
     }
     if (advertDialogElementKeydownHandler) {
@@ -34,7 +36,7 @@ window.showCard = (function () {
       return;
     }
     unsubscribeDialogCloseEvents();
-    modulesCache.card.hide();
+    window.card.hide();
     showResult.onClose(currentAdvertId);
     currentAdvertId = -1;
   };
@@ -43,17 +45,17 @@ window.showCard = (function () {
     advertDialogCloseElementClickHandler = function () {
       closeAdvertDialog();
     };
-    elements.advertDialogCloseElement.addEventListener('click', advertDialogCloseElementClickHandler);
+    advertDialogCloseElement.addEventListener('click', advertDialogCloseElementClickHandler);
 
     advertDialogCloseElementKeydownHandler = function (keydownEvt) {
-      if (modulesCache.eventHelper.isActivatedByKeyCode(keydownEvt, modulesCache.eventHelper.keys.enter)) {
+      if (window.eventHelper.isActivatedByKeyCode(keydownEvt, window.eventHelper.keys.enter)) {
         closeAdvertDialog();
       }
     };
-    elements.advertDialogCloseElement.addEventListener('keydown', advertDialogCloseElementKeydownHandler);
+    advertDialogCloseElement.addEventListener('keydown', advertDialogCloseElementKeydownHandler);
 
     advertDialogElementKeydownHandler = function (keydownEvt) {
-      if (modulesCache.eventHelper.isActivatedByKeyCode(keydownEvt, modulesCache.eventHelper.keys.escape)) {
+      if (window.eventHelper.isActivatedByKeyCode(keydownEvt, window.eventHelper.keys.escape)) {
         closeAdvertDialog();
       }
     };
@@ -63,18 +65,12 @@ window.showCard = (function () {
   /** Публикация интерфейса модуля.
    ******************************************************************************/
 
-  return function (advert, cardModule, eventHelperModule, elementsCache) {
-    modulesCache = {
-      card: cardModule,
-      eventHelper: eventHelperModule
-    };
-    elements = elementsCache;
-
+  return function (advert) {
     unsubscribeDialogCloseEvents();
-    modulesCache.card.render(advert);
+    window.card.render(advert);
     subscribeDialogCloseEvents();
 
-    modulesCache.card.show();
+    window.card.show();
     currentAdvertId = advert.id;
 
     showResult = {

@@ -10,6 +10,9 @@ window.filterAdverts = (function () {
   var guestsCount;
   var selectedFeatures = [];
 
+  /** Средства управления множеством доступных удобств.
+   ******************************************************************************/
+
   var selectFeature = function (feature) {
     if (!~selectedFeatures.indexOf(feature)) {
       selectedFeatures.push(feature);
@@ -23,7 +26,7 @@ window.filterAdverts = (function () {
     }
   };
 
-  var isNoneFeaturesActive = function (fearute) {
+  var isNoneFeaturesActive = function () {
     return selectedFeatures.length === 0;
   };
 
@@ -32,6 +35,9 @@ window.filterAdverts = (function () {
       return ~features.indexOf(feature);
     });
   };
+
+  /** Применение фильтра к набору доступных объявлений.
+   ******************************************************************************/
 
   var updateAdverts = function () {
     var adverts = window.data.getAdverts()
@@ -53,9 +59,13 @@ window.filterAdverts = (function () {
     thisModule.onAdvertsFiltered(adverts);
   };
 
+
   var updateAdvertsWithDebounce = function () {
     window.debounce(updateAdverts);
   };
+
+  /** Публикация интерфейса модуля.
+   ******************************************************************************/
 
   thisModule = {
     /**

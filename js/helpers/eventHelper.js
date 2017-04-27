@@ -8,7 +8,7 @@ window.eventHelper = (function () {
       escape: 27
     },
     isActivatedByKeyCode: function (evt, keyCode) {
-      return evt.keyCode && evt.keyCode === keyCode;
+      return typeof evt.keyCode !== 'undefined' && evt.keyCode === keyCode;
     }
   };
 })();
