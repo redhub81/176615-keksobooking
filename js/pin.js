@@ -118,25 +118,15 @@ window.pin = (function () {
 
   var pinKeydownHandler = null;
 
-  var getPinElement = function (targetElement) {
-    while (targetElement !== null) {
-      if (isPinElement(targetElement)) {
-        break;
-      }
-      targetElement = targetElement.parentElement;
-    }
-    return targetElement;
-  };
-
   pinMapElement.addEventListener('click', function (clickEvt) {
-    var pinTarget = getPinElement(clickEvt.target);
+    var pinTarget = window.eventHelper.findParent(clickEvt.target, isPinElement);
     if (pinTarget !== null) {
       activatePin(pinTarget);
     }
   });
 
   pinMapElement.addEventListener('focus', function (focusEvt) {
-    var pinTarget = getPinElement(focusEvt.target);
+    var pinTarget = window.eventHelper.findParent(focusEvt.target, isPinElement);
     if (pinTarget !== null && pinKeydownHandler === null) {
       pinKeydownHandler = function (keydownEvt) {
         if (window.eventHelper.isActivatedByKeyCode(keydownEvt, window.eventHelper.keys.enter)) {
@@ -148,7 +138,7 @@ window.pin = (function () {
   }, true);
 
   pinMapElement.addEventListener('blur', function (blurEvt) {
-    var pinTarget = getPinElement(blurEvt.target);
+    var pinTarget = window.eventHelper.findParent(blurEvt.target, isPinElement);
     if (pinTarget !== null && pinKeydownHandler !== null) {
       pinTarget.removeEventListener('keydown', pinKeydownHandler);
       pinKeydownHandler = null;

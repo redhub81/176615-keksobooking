@@ -153,10 +153,8 @@ window.form = (function () {
   /** Перетаскивание фото жилья.
    ******************************************************************************/
 
-  window.dragImage(photoContainerElement, function (items) {
-    return items.find(function (it) {
-      return typeof it.classList !== 'undefined' && it.classList.contains('form__photo');
-    });
+  window.dragImage(photoContainerElement, function (it) {
+    return typeof it.classList !== 'undefined' && it.classList.contains('form__photo');
   });
 
   /** Публикация интерфейса модуля.

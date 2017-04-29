@@ -5,20 +5,22 @@ window.dragImage = (function () {
   var DATA_TRANSFER_TEXT_TYPE = 'text/plain';
   var HTML_IMG_TAG_NAME = 'img';
 
+  var startContainer = null;
   var draggedItem = null;
 
   var hasData = function (dataTransfer) {
     var types = dataTransfer.types;
-    return typeof types !== 'undefined' && types.some(function (type) {
+    return typeof types !== 'undefined' && Array.prototype.some.call(types, function (type) {
       return type === DATA_TRANSFER_TEXT_TYPE;
     });
   };
 
-  return function (imageContainer, getImageContainerCallback) {
+  return function (imageContainer, isImageContainerCallback) {
     imageContainer.addEventListener('dragstart', function (dragStartEvt) {
       if (dragStartEvt.target.tagName.toLowerCase() !== HTML_IMG_TAG_NAME) {
         return;
       }
+      startContainer = window.eventHelper.findParent(dragStartEvt.target, isImageContainerCallback);
       draggedItem = dragStartEvt.target;
       dragStartEvt.dataTransfer.setData(DATA_TRANSFER_TEXT_TYPE, dragStartEvt.target.alt);
     });
@@ -29,10 +31,10 @@ window.dragImage = (function () {
     });
 
     imageContainer.addEventListener('dragenter', function (evt) {
-      if (!hasData(evt.dataTransfer)) {
+      if (draggedItem === null || !hasData(evt.dataTransfer)) {
         return;
       }
-      var targetContainer = getImageContainerCallback(evt.path);
+      var targetContainer = window.eventHelper.findParent(evt.target, isImageContainerCallback);
       if (typeof targetContainer === 'undefined' || targetContainer === null) {
         return;
       }
@@ -45,7 +47,9 @@ window.dragImage = (function () {
         var containerDragEnterHandler = function (dragEnterEvt) {
           dragEnterEvt.preventDefault();
           dragEnterEvt.stopPropagation();
-          dragCounter++;
+          if (dragEnterEvt.target !== thisContainer) {
+            dragCounter++;
+          }
         };
         var containerDragLeaveHandler = function (dragLeaveEvt) {
           dragLeaveEvt.preventDefault();
@@ -75,6 +79,7 @@ window.dragImage = (function () {
           thisContainer.removeEventListener('dragenter', containerDragEnterHandler);
           thisContainer.removeEventListener('dragleave', containerDragLeaveHandler);
           thisContainer.removeEventListener('drop', containerDropHandler);
+          startContainer.style.backgroundColor = '';
           thisContainer.style.backgroundColor = '';
         };
 
