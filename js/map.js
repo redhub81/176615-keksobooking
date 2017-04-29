@@ -2,10 +2,13 @@
 'use strict';
 
 window.map = (function () {
-  var BOUNDING_BOX = window.settings.map.pinPanel.boundingBox;
+  var BOUNDING_BOX = window.settings.advertMap.pinPanel.boundingBox;
+  var MAIN_PIN = window.settings.advertMap.mainPin;
   var PIN_PANEL_X_RANGE = {min: BOUNDING_BOX.x0, max: BOUNDING_BOX.x1};
   var PIN_PANEL_Y_RANGE = {min: BOUNDING_BOX.y0, max: BOUNDING_BOX.y1};
-  var MAIN_PIN_OFFSET = {x: Math.round(0.5 * window.settings.mainPin.width), y: window.settings.mainPin.height};
+  var MAIN_PIN_OFFSET = {x: Math.round(0.5 * MAIN_PIN.width), y: MAIN_PIN.height};
+  var UNKNOWN_LOCATION = window.settings.advertMap.unknownLocation;
+  var UNKNOWN_POINT = {x: null, y: null};
 
   var thisModule;
 
@@ -17,6 +20,10 @@ window.map = (function () {
 
   /** Расчет и преобразование координат.
    ******************************************************************************/
+
+  var getLocation = function (point) {
+    return {x: point.x.toString(), y: point.y.toString()};
+  };
 
   var isInRange = function (position, range) {
     var fixedPosition = Math.round(position);
@@ -45,15 +52,6 @@ window.map = (function () {
     return {
       x: targetPoint.x + MAIN_PIN_OFFSET.x,
       y: targetPoint.y + MAIN_PIN_OFFSET.y
-    };
-  };
-
-  var parsePoint = function (text) {
-    var xMatch = text.match(window.settings.noticeForm.address.parseXPattern);
-    var yMatch = text.match(window.settings.noticeForm.address.parseYPattern);
-    return {
-      x: xMatch !== null ? xMatch[1] : null,
-      y: yMatch !== null ? yMatch[1] : null
     };
   };
 
@@ -143,7 +141,8 @@ window.map = (function () {
 
   var doDragByOriginResult = doDragByOrigin(mainPinElement, MAIN_PIN_OFFSET, BOUNDING_BOX);
   doDragByOriginResult.onDrag = function (originPoint) {
-    thisModule.onMainPinMove(originPoint);
+    var location = getLocation(originPoint);
+    thisModule.onMainPinMove(location);
   };
 
   /** Публикация интерфейса модуля.
@@ -152,23 +151,23 @@ window.map = (function () {
   thisModule = {
     /**
      * Возвращает позицию метки текущего заполняемого объявления.
-     * @return {Object} Точка, соответствующая позиции метки.
+     * @return {Object} Расположение метки пользователя на карте.
      */
-    getMainPinPosition: function () {
+    getMainPinLocation: function () {
       var mainPinPoint = getElementPoint(mainPinElement);
-      return getMainPinOriginPoint(mainPinPoint);
+      var mainPinOrigin = getMainPinOriginPoint(mainPinPoint);
+      return getLocation(mainPinOrigin);
     },
     /**
      * Устанавливает позицию метки текущего заполняемого объявления.
-     * @param {string} text Текстовое представление позиции метки.
+     * @param {Object} location Расположение метки пользователя на карте.
      */
-    parseMainPinPosition: function (text) {
-      if (text === null || text === '') {
-        moveElement(mainPinElement, {x: null, y: null});
+    setMainPinLocation: function (location) {
+      if (location.x === UNKNOWN_LOCATION.x || location.y === UNKNOWN_LOCATION.y) {
+        moveElement(mainPinElement, UNKNOWN_POINT);
         return;
       }
-      var rawPoint = parsePoint(text);
-      var parsedPoint = {x: parseInt(rawPoint.x, 10), y: parseInt(rawPoint.y, 10)};
+      var parsedPoint = {x: parseInt(location.x, 10), y: parseInt(location.y, 10)};
       if (!isNaN(parsedPoint.x) && !isNaN(parsedPoint.y)) {
         var originPoint = coerceToRectangle(parsedPoint);
         var targetPoint = getMainPinTargetPoint(originPoint);
@@ -177,9 +176,9 @@ window.map = (function () {
     },
     /**
      * Вызывается при изменении позиции метки текущего заполняемого объявления.
-     * @param {Object} originPoint Точка, соответствующая позиции метки.
+     * @param {Object} location Расположение метки пользователя на карте.
      */
-    onMainPinMove: function (originPoint) {}
+    onMainPinMove: function (location) {}
   };
   return thisModule;
 })();

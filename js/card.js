@@ -2,7 +2,7 @@
 'use strict';
 
 window.card = (function () {
-  var OFFER_SETTINGS = window.settings.advert.offer;
+  var OFFER_SETTINGS = window.settings.advertOffer;
 
   var thisModule;
 

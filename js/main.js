@@ -2,12 +2,17 @@
 'use strict';
 
 window.main = (function () {
+  var ADDRESS_SETTINGS = window.settings.noticeForm.address;
+  var UNKNOWN_LOCATION = window.settings.advertMap.unknownLocation;
+
+  var isInitialized = false;
 
   /** Настройка модулей.
    ******************************************************************************/
 
   var setupForm = function () {
-    var address = getAddressByLocation(window.map.getMainPinPosition());
+    var location = window.map.getMainPinLocation();
+    var address = getAddressByLocation(location);
     window.form.setAddress(address);
   };
 
@@ -21,28 +26,46 @@ window.main = (function () {
     });
   };
 
+  /** Преобразование данных.
+   ******************************************************************************/
+
+  var getAddressByLocation = function (location) {
+    return window.textHelper.format(ADDRESS_SETTINGS.format, [location.x, location.y]);
+  };
+
+  var getLocationByaddress = function (address) {
+    var xMatch = address.match(ADDRESS_SETTINGS.parseXPattern);
+    var yMatch = address.match(ADDRESS_SETTINGS.parseYPattern);
+    return {
+      x: xMatch !== null ? xMatch[1] : null,
+      y: yMatch !== null ? yMatch[1] : null
+    };
+  };
+
   /** Подписка событий модулей.
    ******************************************************************************/
 
-  var getAddressByLocation = function (point) {
-    return window.textHelper.format(window.settings.noticeForm.address.format, [point.x, point.y]);
-  };
-
   var subscribeMap = function () {
-    window.map.onMainPinMove = function (point) {
-      var address = getAddressByLocation(point);
+    window.map.onMainPinMove = function (location) {
+      var address = getAddressByLocation(location);
       window.form.setAddress(address);
     };
   };
 
   var subscribeForm = function () {
     window.form.onAddressChanged = function (addressInfo) {
-      window.map.parseMainPinPosition(addressInfo.newAddress);
+      var newAddress = addressInfo.newAddress;
+      var location = newAddress !== null && newAddress !== ''
+        ? getLocationByaddress(newAddress)
+        : UNKNOWN_LOCATION;
+
+      window.map.setMainPinLocation(location);
+
       addressInfo.oldAddress = addressInfo.newAddress;
-      addressInfo.newAddress = getAddressByLocation(window.map.getMainPinPosition());
+      addressInfo.newAddress = getAddressByLocation(window.map.getMainPinLocation());
     };
     window.form.onSubmit = function () {
-      window.map.parseMainPinPosition('');
+      window.map.setMainPinLocation(UNKNOWN_LOCATION);
       setupForm();
     };
   };
@@ -71,15 +94,20 @@ window.main = (function () {
 
     window.filterAdverts.onAdvertsFiltered = function (adverts) {
       var activeAdvertId = window.pin.getActiveAdvertId();
-      var hasActiveAdvert = (activeAdvertId >= 0) && adverts.some(function (advert) {
+      if (!isInitialized && adverts.length > 0) {
+        activeAdvertId = adverts[0].id;
+        isInitialized = true;
+      }
+      var hasActiveAdvert = activeAdvertId >= 0 && adverts.some(function (advert) {
         return advert.id === activeAdvertId;
       });
-      if (adverts.length > 0 && !hasActiveAdvert) {
-        activeAdvertId = adverts[0].id;
-      }
+
       window.card.hide();
       window.pin.show(adverts);
-      window.pin.activatePin(activeAdvertId);
+
+      if (hasActiveAdvert) {
+        window.pin.activatePin(activeAdvertId);
+      }
     };
     window.data.onAdvertsLoaded = function () {
       window.filterAdverts.updateAdverts();
@@ -97,5 +125,4 @@ window.main = (function () {
   subscribeFilter();
 
   window.data.loadAdverts();
-
 })();

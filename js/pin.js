@@ -2,6 +2,8 @@
 'use strict';
 
 window.pin = (function () {
+  var OTHER_PIN = window.settings.advertMap.otherPin;
+
   var thisModule;
   var activePinElement = null;
 
@@ -30,16 +32,16 @@ window.pin = (function () {
     var pinElement = document.createElement('div');
     pinElement.id = createPinId(advert.id);
     pinElement.classList.add('pin');
-    var xPosition = advert.location.x - Math.round(0.5 * window.settings.otherPin.width);
-    var yPosition = advert.location.y - window.settings.otherPin.height;
+    var xPosition = advert.location.x - Math.round(0.5 * OTHER_PIN.width);
+    var yPosition = advert.location.y - OTHER_PIN.height;
     pinElement.style.left = xPosition + 'px';
     pinElement.style.top = yPosition + 'px';
 
     var childElement = document.createElement('img');
     childElement.src = advert.author.avatar;
     childElement.classList.add('rounded');
-    childElement.width = window.settings.otherPin.img.width;
-    childElement.height = window.settings.otherPin.img.height;
+    childElement.width = OTHER_PIN.img.width;
+    childElement.height = OTHER_PIN.img.height;
 
     pinElement.appendChild(childElement);
     pinElement.tabIndex = '0';
